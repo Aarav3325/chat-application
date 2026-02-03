@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "918624552915",
+    "project_id": "chat-application-task-2",
+    "storage_bucket": "chat-application-task-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:918624552915:android:6c0664b9625c4ec2279126",
+        "android_client_info": {
+          "package_name": "com.aarav.chatapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcVXdp6sfymsc3H7wpG-owmadNSxf0PZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
