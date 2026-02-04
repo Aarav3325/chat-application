@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.chat
 
+import android.view.Window
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,11 +25,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -49,13 +53,14 @@ fun ChatScreen(
 ) {
 
     Scaffold(
-        containerColor = Color(0xFF1F1F1F),
+        contentWindowInsets = WindowInsets(0),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
 
         Box(
             modifier = Modifier
                 .background(
-                    Color.Black
+                    MaterialTheme.colorScheme.surfaceContainerLowest
                 )
                 .padding(it)
                 .fillMaxSize()
@@ -66,7 +71,7 @@ fun ChatScreen(
                 Box {
                     Row(
                         modifier = Modifier
-                            .background(Color(0xFF1F1F1F))
+                            .padding(top = 48.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -99,7 +104,7 @@ fun ChatScreen(
                                     fontFamily = manrope,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFC8C8C8)
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
 
                                 Row(
@@ -131,7 +136,7 @@ fun ChatScreen(
                     LazyColumn(
                         flingBehavior = ScrollableDefaults.flingBehavior(),
                         modifier = Modifier
-                            .background(Color.Black)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
                             .fillMaxSize()
                             .padding(bottom = 102.dp)
                     ) {
@@ -155,7 +160,7 @@ fun ChatScreen(
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.padding(
                             top = 16.dp
                         ).align(Alignment.TopCenter)
@@ -165,7 +170,7 @@ fun ChatScreen(
                             fontFamily = manrope,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF4D4D4D),
+                            color = MaterialTheme.colorScheme.onTertiary,
                             modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
                         )
                     }
@@ -186,7 +191,7 @@ fun TextTypeBox(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF1F1F1F))
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
         TextField(
             modifier = Modifier
@@ -200,15 +205,15 @@ fun TextTypeBox(
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-                unfocusedContainerColor = Color(0xFF272626),
-                focusedContainerColor = Color(0xFF272626)
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer
             ),
             placeholder = {
                 Text(
                     "Type here...",
                     fontFamily = manrope,
                     fontSize = 14.sp,
-                    color = Color(0xFF8F8F8F)
+                    color = MaterialTheme.colorScheme.secondary
                 )
             },
             trailingIcon = {
@@ -226,7 +231,7 @@ fun TextTypeBox(
                     Icon(
                         painter = painterResource(R.drawable.send),
                         contentDescription = "sticker",
-                        tint = Color(0xFF7C01F6),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -290,8 +295,8 @@ val chats = listOf(
 fun ChatCard(
     chat: Chat
 ) {
-    val bg = if (chat.sent) Color(0xFF830EF7) else Color(0xFF1F1F1F)
-    val content = if (chat.sent) Color(0xFFC8C8C8) else Color(0xFFBABABA)
+    val bg = if (chat.sent) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+    val content = if (chat.sent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
     val alignment = if (chat.sent) Alignment.End else Alignment.Start
 
     Box(

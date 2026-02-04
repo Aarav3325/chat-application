@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -64,7 +65,7 @@ fun HomeScreen(
             item {
                 Surface(
                     shape = RoundedCornerShape(28.dp),
-                    color = Color(0xFF7C01F6),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
@@ -72,7 +73,7 @@ fun HomeScreen(
                         fontFamily = manrope,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -135,7 +136,7 @@ fun ChatItem(
 ) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1F1F1F)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -143,7 +144,7 @@ fun ChatItem(
             .clickable {
                 onClick()
             },
-        border = BorderStroke(1.dp, Color(0xFF7D7783))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
@@ -176,7 +177,7 @@ fun ChatItem(
                     fontFamily = manrope,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
-                    color = Color(0xFFC8C8C8)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     user.message,
@@ -185,7 +186,7 @@ fun ChatItem(
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -199,12 +200,12 @@ fun ChatItem(
                     fontFamily = manrope,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF7C01F6)
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Surface(
                     shape = CircleShape,
                     modifier = Modifier.size(22.dp),
-                    color = Color(0xFF7C01F6)
+                    color = MaterialTheme.colorScheme.primary
                 ) {
                     Box(
                         contentAlignment = Alignment.Center
@@ -213,7 +214,7 @@ fun ChatItem(
                             user.unread.toString(),
                             fontFamily = manrope,
                             fontSize = 14.sp,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }

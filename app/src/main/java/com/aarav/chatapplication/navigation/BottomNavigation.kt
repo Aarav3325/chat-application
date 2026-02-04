@@ -4,6 +4,7 @@ package com.aarav.chatapplication.navigation
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -30,7 +31,7 @@ fun BottomNavigation(navController: NavController) {
 
     NavigationBar(
         tonalElevation = 4.dp,
-        containerColor = Color(0xFF222222),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.shadow(24.dp)
     ) {
         navItems.forEachIndexed { index, item ->
@@ -67,9 +68,11 @@ fun BottomNavigation(navController: NavController) {
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = Color.Transparent,
-                    selectedTextColor = Color.White,
-                    unselectedTextColor = Color(0xFF8F8F8F),
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
         }

@@ -8,6 +8,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.aarav.chatapplication.auth.AuthScreen
 import com.aarav.chatapplication.chat.ChatCard
 import com.aarav.chatapplication.chat.ChatScreen
 import com.aarav.chatapplication.home.HomeScreen
@@ -16,10 +17,11 @@ import com.aarav.chatapplication.home.HomeScreen
 fun NavGraph(navHostController: NavHostController, modifier: Modifier) {
     NavHost(
         navHostController,
-        startDestination = NavRoute.Home.path
+        startDestination = NavRoute.Auth.path
     ) {
         addHomeScreen(navHostController, this)
         addChatScreen(navHostController, this)
+        addAuthScreen(navHostController, this)
     }
 }
 
@@ -32,6 +34,13 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
                 navController.navigate(NavRoute.Chat.path)
             }
         )
+    }
+}
+fun addAuthScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+    navGraphBuilder.composable(
+        route = NavRoute.Auth.path
+    ) {
+        AuthScreen()
     }
 }
 

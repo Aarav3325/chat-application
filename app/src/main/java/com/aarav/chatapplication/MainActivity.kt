@@ -18,14 +18,16 @@ import androidx.navigation.compose.rememberNavController
 import com.aarav.chatapplication.navigation.BottomNavigation
 import com.aarav.chatapplication.navigation.NavGraph
 import com.aarav.chatapplication.navigation.NavRoute
-import com.aarav.chatapplication.ui.theme.ChatApplicationTheme
+import com.aarav.chatapplication.ui.theme.AppTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ChatApplicationTheme {
+            AppTheme {
                 val navController = rememberNavController()
 
 
@@ -53,21 +55,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ChatApplicationTheme {
-        Greeting("Android")
     }
 }
