@@ -12,4 +12,10 @@ object FirebasePaths {
 
     fun unread(userId: String, chatId: String) =
         "unread/$userId/$chatId"
+
+    fun typing(chatId: String, userId: String) =
+        "typing/$chatId/$userId"
+
+    fun presence(userId: String) =
+        "presence/$userId"
 }

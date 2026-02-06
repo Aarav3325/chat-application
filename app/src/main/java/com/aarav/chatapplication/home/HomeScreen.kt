@@ -1,6 +1,5 @@
 package com.aarav.chatapplication.home
 
-import android.os.Message
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -42,11 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
-import com.aarav.chatapplication.auth.components.CreateChatModalSheet
-import com.aarav.chatapplication.auth.components.CustomBottomSheet
+import com.aarav.chatapplication.components.CreateChatModalSheet
+import com.aarav.chatapplication.components.CustomBottomSheet
 import com.aarav.chatapplication.ui.theme.manrope
 
 @OptIn(ExperimentalMaterial3Api::class)

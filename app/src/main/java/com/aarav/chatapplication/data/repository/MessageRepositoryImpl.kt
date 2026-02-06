@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.data.repository
 
+import android.util.Log
 import com.aarav.chatapplication.data.model.ChatMeta
 import com.aarav.chatapplication.data.model.Message
 import com.aarav.chatapplication.data.model.MessageStatus
@@ -43,6 +44,8 @@ class MessageRepositoryImpl @Inject constructor(
                 timestamp,
                 MessageStatus.SENT.name
             )
+
+            Log.i("SEND", ChatMeta(text, timestamp).toString())
 
             val updates = hashMapOf<String, Any>(
                 FirebasePaths.message(chatId, messageId) to message,

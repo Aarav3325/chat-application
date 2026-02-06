@@ -16,10 +16,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aarav.chatapplication.domain.repository.AuthRepository
+import com.aarav.chatapplication.domain.repository.PresenceRepository
 import com.aarav.chatapplication.navigation.BottomNavigation
 import com.aarav.chatapplication.navigation.NavGraph
 import com.aarav.chatapplication.navigation.NavRoute
 import com.aarav.chatapplication.ui.theme.AppTheme
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -29,9 +31,24 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: AuthRepository
 
+    @Inject
+    lateinit var presenceRepository: PresenceRepository
+
+    @Inject
+    lateinit var firebaseAuth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val currentUserId = firebaseAuth.currentUser?.uid
+
+//        currentUserId?.let {
+//            presenceRepository.setupPresence(it)
+//        }
+//
+//        presenceRepository.setupPresence("")
+
         setContent {
             AppTheme {
                 val navController = rememberNavController()

@@ -63,10 +63,24 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
     navGraphBuilder.composable(
         route = NavRoute.Chat.path
     ) {
+//        ChatScreen(
+//            back = {
+//                navController.popBackStack()
+//            },
+//            chatId = "test_lkwcgdykDwa8F7lgtYcmLo01tO83_070379f1-2065-4ef3-ad5f-0e0c34e611d9",
+//            myId = "lkwcgdykDwa8F7lgtYcmLo01tO83",
+//            otherUserId = "070379f1-2065-4ef3-ad5f-0e0c34e611d9",
+//            chatViewModel = hiltViewModel()
+//        )
+
         ChatScreen(
             back = {
                 navController.popBackStack()
-            }
+            },
+            chatId = "test_lkwcgdykDwa8F7lgtYcmLo01tO83_070379f1-2065-4ef3-ad5f-0e0c34e611d9",
+            otherUserId = "lkwcgdykDwa8F7lgtYcmLo01tO83",
+            myId = "070379f1-2065-4ef3-ad5f-0e0c34e611d9",
+            chatViewModel = hiltViewModel()
         )
     }
 }
