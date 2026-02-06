@@ -125,6 +125,7 @@ fun ChatScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier.clip(CircleShape).clickable {
                                     back()
                                     chatViewModel.onTypingStopped()

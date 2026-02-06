@@ -31,19 +31,20 @@ fun NavGraph(
         navHostController,
         startDestination = if(isLoggedIn) NavRoute.Home.path else NavRoute.Auth.path
     ) {
-        addHomeScreen(navHostController, this)
+        addHomeScreen(navHostController, this, userId ?: "")
         addChatScreen(navHostController, this, userId ?: "")
         addAuthScreen(navHostController, this)
     }
 }
 
-fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, userId: String) {
     navGraphBuilder.composable(
         route = NavRoute.Home.path,
     ) {
 
 
         HomeScreen(
+            userId,
             navigateToChat = {
                 receiverId ->
 

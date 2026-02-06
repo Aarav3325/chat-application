@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.data.repository
 
+import android.util.Log
 import com.aarav.chatapplication.data.remote.FirebasePaths
 import com.aarav.chatapplication.domain.repository.ChatListRepository
 import com.google.firebase.database.DataSnapshot
@@ -27,6 +28,7 @@ class ChatListRepositoryImpl
                     it.key
                 }
 
+                Log.i("CHAT", "repo cahtIds: " + chatIds.toString())
                 trySend(chatIds)
             }
 

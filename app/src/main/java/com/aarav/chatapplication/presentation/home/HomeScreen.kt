@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,7 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,16 +53,23 @@ import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
 import com.aarav.chatapplication.presentation.components.CustomBottomSheet
 import com.aarav.chatapplication.presentation.model.ChatListItem
 import com.aarav.chatapplication.ui.theme.manrope
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Preview(showBackground = true)
 @Composable
 fun HomeScreen(
+    userId: String,
     navigateToChat: (String) -> Unit,
     chatListViewModel: ChatListViewModel
 ) {
 
     val uiState by chatListViewModel.uiState.collectAsState()
+
+    LaunchedEffect(userId) {
+        chatListViewModel.observeChatList(userId)
+        Log.i("CHAT", "chatList : " + uiState.chatList.toString())
+    }
 
     var showCreateChatModal by remember {
         mutableStateOf(false)
@@ -111,32 +121,44 @@ fun HomeScreen(
             )
         }
     ) {
-        LazyColumn(
-            modifier = Modifier.padding(it)
-        ) {
+        if(uiState.isLoading) {
+            Box(
+                modifier = Modifier.padding(it).padding(bottom = 88.dp)
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
 
-            item {
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        "Recents",
-                        fontFamily = manrope,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
+                ContainedLoadingIndicator()
             }
+        }
+        else {
+            LazyColumn(
+                modifier = Modifier.padding(it)
+            ) {
 
-            items(uiState.chatList) { item ->
-                ChatItem(
-                    item
-                ) {
-                    navigateToChat(item.otherUserId)
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            "Recents",
+                            fontFamily = manrope,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+
+                items(uiState.chatList) { item ->
+                    ChatItem(
+                        item
+                    ) {
+                        navigateToChat(item.otherUserId)
+                    }
                 }
             }
         }
@@ -280,21 +302,24 @@ fun ChatItem(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Surface(
-                    shape = CircleShape,
-                    modifier = Modifier.size(22.dp),
-                    color = MaterialTheme.colorScheme.primary
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
+
+                if(chatListItem.unreadCount > 0) {
+                    Surface(
+                        shape = CircleShape,
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.primary
                     ) {
-                        Text(
-                            chatListItem.unreadCount.toString(),
-                            fontFamily = manrope,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                chatListItem.unreadCount.toString(),
+                                fontFamily = manrope,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }

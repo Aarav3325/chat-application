@@ -1,7 +1,6 @@
 package com.aarav.chatapplication.presentation.home
 
 import android.util.Log
-import androidx.compose.ui.graphics.Paint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aarav.chatapplication.domain.model.User
@@ -12,10 +11,10 @@ import com.aarav.chatapplication.domain.repository.UserRepository
 import com.aarav.chatapplication.presentation.model.ChatListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,34 +31,44 @@ class ChatListViewModel
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        getUserList()
+//        getUserList()
     }
 
     fun observeChatList(myId: String) {
+
         viewModelScope.launch {
 
-            _uiState.update {
-                it.copy(
-                    isLoading = true
-                )
-            }
+            _uiState.update { it.copy(isLoading = true) }
+
+            delay(500)
 
             chatListRepository.observeUserChats(myId)
                 .collect { chatIds ->
-                    val items = mutableListOf<ChatListItem>()
 
-                    chatIds.forEach { chatId ->
+                    if (chatIds.isEmpty()) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                chatList = emptyList()
+                            )
+                        }
+                        return@collect
+                    }
+
+                    val chatFlows = chatIds.map { chatId ->
+
                         val otherUserId = chatId.split("_")
-                            .first {
-                                it != myId
-                            }
+                            .first { it != myId }
 
                         combine(
                             chatListRepository.observeChatMeta(chatId),
                             chatListRepository.observeUnread(myId, chatId),
-                            presenceRepository.observePresence(otherUserId),
+//                            presenceRepository.observePresence(otherUserId),
                             userRepository.findUserByUserId(otherUserId)
-                        ) { meta, unread, presence, user ->
+                        ) { meta, unread,
+                            //presence,
+                            user ->
+
                             ChatListItem(
                                 chatId = chatId,
                                 otherUserId = otherUserId,
@@ -67,40 +76,32 @@ class ChatListViewModel
                                 lastMessage = meta.first,
                                 lastTimestamp = meta.second,
                                 unreadCount = unread,
-                                isOnline = presence.isOnline
+                                isOnline = false
                             )
                         }
-                            .collect { item ->
-                                items.removeAll { it.chatId == item.chatId }
-                                items.add(item)
+                    }
 
-                                _uiState.update {
-                                    it.copy(
-                                        isLoading = false,
-                                        chatList = items.sortedByDescending { it.lastTimestamp }
-                                    )
-                                }
-                            }
+
+                    combine(chatFlows) { itemsArray ->
+
+                        Log.i("MYTAG","final list : " + itemsArray.toString())
+                        itemsArray
+                            .toList()
+                            .sortedByDescending { it.lastTimestamp }
+
+                    }.collect { finalList ->
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                chatList = finalList
+                            )
+                        }
                     }
                 }
         }
     }
 
-    fun getUserList() {
-        viewModelScope.launch {
-            userRepository.getUserList()
-                .catch { e ->
-                    Log.i("MYTAG", e.message.toString())
-                }
-                .collect { userList ->
-                    _uiState.update {
-                        it.copy(
-                            userList = userList
-                        )
-                    }
-                }
-        }
-    }
 }
 
 data class HomeUiState(
