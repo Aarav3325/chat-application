@@ -53,9 +53,10 @@ import com.aarav.chatapplication.ui.theme.manrope
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AuthScreen() {
-
-    val viewModel: AuthViewModel = hiltViewModel()
+fun AuthScreen(
+    navigateToHome: () -> Unit,
+    viewModel: AuthViewModel
+) {
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -74,7 +75,7 @@ fun AuthScreen() {
         }
     }
 
-        if(!show) {
+        if(!uiState.isCodeSent) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -174,10 +175,10 @@ fun AuthScreen() {
                 Button(
                     onClick = {
                         show = true
-//                        val finalPhone = "+91${uiState.phone}"
-//                        activity?.let {
-//                            viewModel.sendOtp(finalPhone, it)
-//                        }
+                        val finalPhone = "+91${uiState.phone}"
+                        activity?.let {
+                            viewModel.sendOtp(finalPhone, it)
+                        }
                     },
                     modifier = Modifier
                         .height(48.dp),
@@ -201,7 +202,7 @@ fun AuthScreen() {
             }
         }
         else{
-            OPTScreen(uiState, viewModel)
+            OPTScreen(uiState, viewModel, navigateToHome)
         }
 
 

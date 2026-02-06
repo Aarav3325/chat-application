@@ -1,6 +1,7 @@
 package com.aarav.chatapplication.home
 
 import android.os.Message
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -18,12 +19,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.auth.components.CreateChatModalSheet
+import com.aarav.chatapplication.auth.components.CustomBottomSheet
 import com.aarav.chatapplication.ui.theme.manrope
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +54,37 @@ import com.aarav.chatapplication.ui.theme.manrope
 @Composable
 fun HomeScreen(
     navigateToChat: () -> Unit,
+    charViewModel: ChatViewModel,
 ) {
+
+    val userList by charViewModel.userList.collectAsState()
+
+    var showCreateChatModal by remember {
+        mutableStateOf(false)
+    }
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = false
+    )
+
+    if(showCreateChatModal) {
+        CustomBottomSheet(
+            sheetState = sheetState,
+            onDismiss = {
+                showCreateChatModal = false
+            },
+            title = "Create New Chat"
+        ) {
+            CreateChatModalSheet(userList)
+        }
+    }
+
+    LaunchedEffect(userList) {
+        if(userList.isNotEmpty()) {
+            Log.i("MYTAG", userList.toString())
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -54,6 +96,19 @@ fun HomeScreen(
                         fontFamily = manrope,
                         color = Color(0xFF575459)
                     )
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            showCreateChatModal = true
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.create_chat),
+                            contentDescription = "create chat",
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
                 }
             )
         }

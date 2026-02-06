@@ -1,8 +1,10 @@
 package com.aarav.chatapplication.di
 
 import com.aarav.chatapplication.data.repository.AuthRepositoryImpl
+import com.aarav.chatapplication.data.repository.MessageRepositoryImpl
 import com.aarav.chatapplication.data.repository.UserRepositoryImpl
 import com.aarav.chatapplication.domain.repository.AuthRepository
+import com.aarav.chatapplication.domain.repository.MessageRepository
 import com.aarav.chatapplication.domain.repository.UserRepository
 import dagger.Binds
 import dagger.Module
@@ -22,4 +24,9 @@ abstract class RepositoryModule {
     abstract fun bindUserRepository(
         userRepositoryImpl: UserRepositoryImpl
     ): UserRepository
+
+    @Binds
+    abstract fun bindMessageRepository(
+        messageRepositoryImpl: MessageRepositoryImpl
+    ): MessageRepository
 }

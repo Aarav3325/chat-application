@@ -52,6 +52,7 @@ import kotlinx.coroutines.delay
 fun OPTScreen(
     uiState: AuthUiState,
     viewModel: AuthViewModel,
+    navigateToHome: () -> Unit
 ) {
         var timeLeft by remember { mutableIntStateOf(60) }
 
@@ -66,12 +67,18 @@ fun OPTScreen(
         Log.e("OTP", "OTP SCREEN COMPOSED")
     }
 
+    LaunchedEffect(uiState.isVerified) {
+        if(uiState.isVerified) {
+            navigateToHome()
+        }
+    }
+
 
     var otp by remember { mutableStateOf("") }
 
         Column(
             modifier = Modifier
-                .padding(horizontal = 36.dp, vertical = 72.dp)
+                .padding(horizontal = 16.dp, vertical = 72.dp)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
@@ -113,10 +120,10 @@ fun OPTScreen(
                     onClick = {
                         // onContinueClick()
                         Log.i("AUTH", "working")
-//                        uiState.verificationId?.let {
-//
-//                            viewModel.verifyOtp(it, otp)
-//                        }
+                        uiState.verificationId?.let {
+
+                            viewModel.verifyOtp(it, otp)
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -173,11 +180,15 @@ fun OtpInputField(
                         if (value.isNotEmpty() && index < 5) {
                             focusRequesters[index + 1].requestFocus()
                         }
+
+                        if(value.isEmpty() && index > 0) {
+                            focusRequesters[index - 1].requestFocus()
+                        }
                     }
                 },
                 modifier = Modifier
-                    .width(56.dp)
-                    .height(56.dp)
+                    .width(52.dp)
+                    .height(52.dp)
                     .focusRequester(focusRequesters[index]),
                 textStyle = LocalTextStyle.current.copy(
                     textAlign = TextAlign.Center,

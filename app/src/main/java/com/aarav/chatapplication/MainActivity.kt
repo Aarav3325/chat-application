@@ -15,14 +15,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.aarav.chatapplication.domain.repository.AuthRepository
 import com.aarav.chatapplication.navigation.BottomNavigation
 import com.aarav.chatapplication.navigation.NavGraph
 import com.aarav.chatapplication.navigation.NavRoute
 import com.aarav.chatapplication.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -51,7 +57,11 @@ class MainActivity : ComponentActivity() {
                     innerPadding ->
 
 
-                    NavGraph(navController, Modifier.padding(innerPadding))
+                    NavGraph(
+                        navController,
+                        authRepository,
+                        Modifier.padding(innerPadding),
+                    )
                 }
             }
         }

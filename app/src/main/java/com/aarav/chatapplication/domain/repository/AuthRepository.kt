@@ -9,4 +9,6 @@ interface AuthRepository {
     suspend fun sendOtp(phone: String, activity: Activity): Flow<PhoneAuthState>
     suspend fun verifyOtp(verificationId: String, otp: String): Result<Unit>
     fun logout()
+
+    fun isLoggedIn(): Boolean
 }

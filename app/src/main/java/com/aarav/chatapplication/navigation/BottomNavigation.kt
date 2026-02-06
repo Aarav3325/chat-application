@@ -62,7 +62,7 @@ fun BottomNavigation(navController: NavController) {
                     val icon = if (isSelected) item.filledIcon else item.icon
 
                     Image(
-                        painter = painterResource(icon),
+                        painter = painterResource(item.icon),
                         contentDescription = "nav icon",
                         modifier = Modifier.size(24.dp)
                     )
