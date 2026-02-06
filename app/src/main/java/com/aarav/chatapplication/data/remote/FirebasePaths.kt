@@ -18,4 +18,7 @@ object FirebasePaths {
 
     fun presence(userId: String) =
         "presence/$userId"
+
+    fun userChats(userId: String) =
+        "user_chats/$userId"
 }

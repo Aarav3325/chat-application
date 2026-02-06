@@ -1,4 +1,4 @@
-package com.aarav.chatapplication.chat
+package com.aarav.chatapplication.presentation.chat
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -50,13 +50,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
-import com.aarav.chatapplication.components.MessageStatusIcon
-import com.aarav.chatapplication.components.MyAlertDialog
+import com.aarav.chatapplication.presentation.components.MessageStatusIcon
+import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.data.model.Message
-import com.aarav.chatapplication.home.ChatViewModel
+import com.aarav.chatapplication.presentation.home.ChatViewModel
 import com.aarav.chatapplication.ui.theme.manrope
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
@@ -80,6 +81,7 @@ fun ChatScreen(
     LaunchedEffect(Unit) {
         chatViewModel.observeMessages(chatId, myId)
         chatViewModel.observePresence(otherUserId)
+        chatViewModel.getUser(otherUserId)
     }
 
 
@@ -160,7 +162,7 @@ fun ChatScreen(
                                     .weight(1f)
                             ) {
                                 Text(
-                                    "Rahul",
+                                    uiState.user?.name ?: "",
                                     fontFamily = manrope,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
@@ -497,6 +499,6 @@ fun ChatCard(
 }
 
 fun formatTimestamp(timestamp: Long): String {
-    val df = SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+    val df = SimpleDateFormat("HH:mm", Locale.getDefault())
     return df.format(Date(timestamp))
 }

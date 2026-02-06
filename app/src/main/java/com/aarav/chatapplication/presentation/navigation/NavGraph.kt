@@ -1,24 +1,27 @@
-package com.aarav.chatapplication.navigation
+package com.aarav.chatapplication.presentation.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.aarav.chatapplication.auth.AuthScreen
-import com.aarav.chatapplication.chat.ChatCard
-import com.aarav.chatapplication.chat.ChatScreen
+import androidx.navigation.navArgument
+import com.aarav.chatapplication.presentation.auth.AuthScreen
+import com.aarav.chatapplication.presentation.chat.ChatScreen
 import com.aarav.chatapplication.domain.repository.AuthRepository
-import com.aarav.chatapplication.home.HomeScreen
+import com.aarav.chatapplication.presentation.home.HomeScreen
+import com.aarav.chatapplication.utils.generateChatId
 
 @Composable
 fun NavGraph(
     navHostController: NavHostController,
     authRepository: AuthRepository,
+    userId: String?,
     modifier: Modifier
 ) {
 
@@ -29,20 +32,24 @@ fun NavGraph(
         startDestination = if(isLoggedIn) NavRoute.Home.path else NavRoute.Auth.path
     ) {
         addHomeScreen(navHostController, this)
-        addChatScreen(navHostController, this)
+        addChatScreen(navHostController, this, userId ?: "")
         addAuthScreen(navHostController, this)
     }
 }
 
 fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
     navGraphBuilder.composable(
-        route = NavRoute.Home.path
+        route = NavRoute.Home.path,
     ) {
+
+
         HomeScreen(
             navigateToChat = {
-                navController.navigate(NavRoute.Chat.path)
+                receiverId ->
+
+                navController.navigate(NavRoute.Chat.createRoute(receiverId))
             },
-            charViewModel = hiltViewModel()
+            chatListViewModel = hiltViewModel()
         )
     }
 }
@@ -59,10 +66,20 @@ fun addAuthScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
     }
 }
 
-fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, userId: String) {
     navGraphBuilder.composable(
-        route = NavRoute.Chat.path
+        route = NavRoute.Chat.path.plus("/{receiverId}"),
+        arguments =
+            listOf(
+                navArgument("receiverId") {
+                    type = NavType.StringType
+                }
+            )
     ) {
+
+        val receiverId = it.arguments?.getString("receiverId").toString()
+        Log.i("MYTAG", "rec: " + receiverId)
+
 //        ChatScreen(
 //            back = {
 //                navController.popBackStack()
@@ -73,13 +90,15 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
 //            chatViewModel = hiltViewModel()
 //        )
 
+        val chatId = generateChatId(userId, receiverId)
+
         ChatScreen(
             back = {
                 navController.popBackStack()
             },
-            chatId = "test_lkwcgdykDwa8F7lgtYcmLo01tO83_070379f1-2065-4ef3-ad5f-0e0c34e611d9",
-            otherUserId = "lkwcgdykDwa8F7lgtYcmLo01tO83",
-            myId = "070379f1-2065-4ef3-ad5f-0e0c34e611d9",
+            chatId = chatId,
+            otherUserId = receiverId,
+            myId = userId,
             chatViewModel = hiltViewModel()
         )
     }

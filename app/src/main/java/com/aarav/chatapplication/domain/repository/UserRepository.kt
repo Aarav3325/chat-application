@@ -11,5 +11,5 @@ interface UserRepository {
 
     fun getUserList(): Flow<List<User>>
 
-    suspend fun findUserByUserId(userId: String): Result<User?>
+    fun findUserByUserId(userId: String): Flow<User>
 }

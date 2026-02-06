@@ -1,11 +1,13 @@
 package com.aarav.chatapplication.di
 
 import com.aarav.chatapplication.data.repository.AuthRepositoryImpl
+import com.aarav.chatapplication.data.repository.ChatListRepositoryImpl
 import com.aarav.chatapplication.data.repository.MessageRepositoryImpl
 import com.aarav.chatapplication.data.repository.PresenceRepositoryImpl
 import com.aarav.chatapplication.data.repository.TypingRepositoryImpl
 import com.aarav.chatapplication.data.repository.UserRepositoryImpl
 import com.aarav.chatapplication.domain.repository.AuthRepository
+import com.aarav.chatapplication.domain.repository.ChatListRepository
 import com.aarav.chatapplication.domain.repository.MessageRepository
 import com.aarav.chatapplication.domain.repository.PresenceRepository
 import com.aarav.chatapplication.domain.repository.TypingRepository
@@ -43,4 +45,9 @@ abstract class RepositoryModule {
     abstract fun bindPresenceRepository(
         presenceRepositoryImpl: PresenceRepositoryImpl
     ): PresenceRepository
+
+    @Binds
+    abstract fun bindChatListRepository(
+        chatListRepositoryImpl: ChatListRepositoryImpl
+    ): ChatListRepository
 }

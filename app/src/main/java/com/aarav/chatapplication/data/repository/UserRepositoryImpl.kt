@@ -78,21 +78,33 @@ class UserRepositoryImpl @Inject constructor(
     }
 
 
-    override suspend fun findUserByUserId(userId: String): Result<User?> {
-        return try {
-            val snapshot = userReference.child(userId).get().await()
-            val user = snapshot.getValue(User::class.java)
+//    override suspend fun findUserByUserId(userIds: List<String>): Result<User?> {
+//        return try {
+//            val snapshot = userReference.child(userId).get().await()
+//            val user = snapshot.getValue(User::class.java)
+//
+//            if (user != null) {
+//                Log.i("USER", user.name ?: "No Name")
+//                Result.Success(user)
+//            } else {
+//                Result.Error("User Not Found")
+//            }
+//
+//        } catch (e: Exception) {
+//            Result.Error(e.message ?: "Unknown Error")
+//        }
+//    }
 
-            if (user != null) {
-                Log.i("USER", user.name ?: "No Name")
-                Result.Success(user)
-            } else {
-                Result.Error("User Not Found")
+    override fun findUserByUserId(userId: String): Flow<User> =
+        callbackFlow {
+            val snapshot = userReference.child(userId)
+                .get().await()
+
+            val user = snapshot.getValue(User::class.java)
+            user?.let {
+                trySend(it)
             }
 
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Unknown Error")
+            awaitClose {  }
         }
-    }
-
 }

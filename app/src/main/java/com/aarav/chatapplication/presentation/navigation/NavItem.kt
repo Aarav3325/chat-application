@@ -1,4 +1,4 @@
-package com.aarav.chatapplication.navigation
+package com.aarav.chatapplication.presentation.navigation
 
 import com.aarav.chatapplication.R
 

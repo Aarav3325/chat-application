@@ -1,9 +1,10 @@
-package com.aarav.chatapplication.auth
+package com.aarav.chatapplication.presentation.auth
 
 import android.app.Activity
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aarav.chatapplication.domain.model.User
 import com.aarav.chatapplication.domain.repository.AuthRepository
 import com.aarav.chatapplication.domain.repository.UserRepository
 import com.aarav.chatapplication.utils.PhoneAuthState
@@ -161,8 +162,8 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun storeUserData(user: com.aarav.chatapplication.domain.model.User) {
-        val user = com.aarav.chatapplication.domain.model.User(
+    fun storeUserData(user: User) {
+        val user = User(
             _uiState.value.userId,
             _uiState.value.phone,
             _uiState.value.name,

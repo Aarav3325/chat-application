@@ -1,4 +1,4 @@
-package com.aarav.chatapplication.home
+package com.aarav.chatapplication.presentation.home
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -39,16 +38,16 @@ class ChatViewModel
     private var currentChatId: String? = null
     private var currentUserId: String? = null
 
-    init {
-        getUserList()
-        getUser("lkwcgdykDwa8F7lgtYcmLo01tO83")
-    }
+//    init {
+//       // getUserList()
+//        getUser()
+//    }
 
     private val _userList: MutableStateFlow<List<User>> = MutableStateFlow(emptyList())
     val userList: StateFlow<List<User>> = _userList.asStateFlow()
 
     fun observePresence(otherUserId: String) {
-        val myId = currentUserId ?: return
+        Log.i("MYTAG", otherUserId)
 
         viewModelScope.launch {
             presenceRepository.observePresence(otherUserId)
@@ -229,21 +228,29 @@ class ChatViewModel
     }
 
 
-    fun getUserList() {
-        viewModelScope.launch {
-            userRepository.getUserList()
-                .catch { e ->
-                    Log.i("MYTAG", e.message.toString())
-                }
-                .collect { user ->
-                    _userList.value = user
-                }
-        }
-    }
+//    fun getUserList() {
+//        viewModelScope.launch {
+//            userRepository.getUserList()
+//                .catch { e ->
+//                    Log.i("MYTAG", e.message.toString())
+//                }
+//                .collect { user ->
+//                    _userList.value = user
+//                }
+//        }
+//    }
 
     fun getUser(userId: String) {
         viewModelScope.launch {
             userRepository.findUserByUserId(userId)
+                .collect {
+                    user ->
+                    _uiState.update {
+                        it.copy(
+                            user = user
+                        )
+                    }
+                }
         }
     }
 
@@ -265,5 +272,6 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isSending: Boolean = false,
     val isOtherUserTyping: Boolean = false,
-    val presence: Presence? = null
+    val presence: Presence? = null,
+    val user: User? = null
 )

@@ -1,4 +1,4 @@
-package com.aarav.chatapplication.home
+package com.aarav.chatapplication.presentation.home
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -43,19 +45,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
-import com.aarav.chatapplication.components.CreateChatModalSheet
-import com.aarav.chatapplication.components.CustomBottomSheet
+import com.aarav.chatapplication.presentation.chat.formatTimestamp
+import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
+import com.aarav.chatapplication.presentation.components.CustomBottomSheet
+import com.aarav.chatapplication.presentation.model.ChatListItem
 import com.aarav.chatapplication.ui.theme.manrope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
 @Composable
 fun HomeScreen(
-    navigateToChat: () -> Unit,
-    charViewModel: ChatViewModel,
+    navigateToChat: (String) -> Unit,
+    chatListViewModel: ChatListViewModel
 ) {
 
-    val userList by charViewModel.userList.collectAsState()
+    val uiState by chatListViewModel.uiState.collectAsState()
 
     var showCreateChatModal by remember {
         mutableStateOf(false)
@@ -65,7 +69,7 @@ fun HomeScreen(
         skipPartiallyExpanded = false
     )
 
-    if(showCreateChatModal) {
+    if (showCreateChatModal) {
         CustomBottomSheet(
             sheetState = sheetState,
             onDismiss = {
@@ -73,13 +77,9 @@ fun HomeScreen(
             },
             title = "Create New Chat"
         ) {
-            CreateChatModalSheet(userList)
-        }
-    }
-
-    LaunchedEffect(userList) {
-        if(userList.isNotEmpty()) {
-            Log.i("MYTAG", userList.toString())
+            CreateChatModalSheet(uiState.userList) {
+                navigateToChat(it)
+            }
         }
     }
 
@@ -132,11 +132,12 @@ fun HomeScreen(
                 }
             }
 
-            items(chatList) { item ->
+            items(uiState.chatList) { item ->
                 ChatItem(
-                    item,
-                    navigateToChat
-                )
+                    item
+                ) {
+                    navigateToChat(item.otherUserId)
+                }
             }
         }
     }
@@ -184,7 +185,7 @@ data class User(
 @Preview(showBackground = true)
 @Composable
 fun ChatItem(
-    user: User,
+    chatListItem: ChatListItem,
     onClick: () -> Unit
 ) {
     Card(
@@ -208,7 +209,7 @@ fun ChatItem(
             Surface(
                 modifier = Modifier.size(67.dp),
                 shape = CircleShape,
-                color = user.color,
+                color = MaterialTheme.colorScheme.secondary,
             ) {
                 Image(
                     painter = painterResource(R.drawable.user),
@@ -225,15 +226,39 @@ fun ChatItem(
                     .padding(start = 16.dp)
                     .weight(1f)
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        chatListItem.otherUserName,
+                        fontFamily = manrope,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if(chatListItem.isOnline) {
+                        Spacer(Modifier.width(12.dp))
+
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF00FF85),
+                            modifier = Modifier.size(8.dp)
+                        ) { }
+
+                        Spacer(Modifier.width(6.dp))
+
+                        Text(
+                            "Online",
+                            fontFamily = manrope,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00FF85)
+                        )
+                    }
+                }
+
                 Text(
-                    user.name,
-                    fontFamily = manrope,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    user.message,
+                    chatListItem.lastMessage,
                     fontFamily = manrope,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -249,7 +274,7 @@ fun ChatItem(
                 modifier = Modifier.padding(start = 16.dp)
             ) {
                 Text(
-                    user.relativeTime,
+                    formatTimestamp(chatListItem.lastTimestamp),
                     fontFamily = manrope,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -264,7 +289,7 @@ fun ChatItem(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            user.unread.toString(),
+                            chatListItem.unreadCount.toString(),
                             fontFamily = manrope,
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onPrimary,

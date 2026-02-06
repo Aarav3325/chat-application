@@ -48,6 +48,8 @@ class MessageRepositoryImpl @Inject constructor(
             Log.i("SEND", ChatMeta(text, timestamp).toString())
 
             val updates = hashMapOf<String, Any>(
+                "user_chats/$senderId/$chatId" to true,
+                "user_chats/$receiverId/$chatId" to true,
                 FirebasePaths.message(chatId, messageId) to message,
                 FirebasePaths.chatMeta(chatId) to ChatMeta(text, timestamp),
                 FirebasePaths.unread(receiverId, chatId) to ServerValue.increment(1)

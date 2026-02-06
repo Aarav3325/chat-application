@@ -1,6 +1,7 @@
-package com.aarav.chatapplication.components
+package com.aarav.chatapplication.presentation.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -86,10 +87,11 @@ fun CustomBottomSheet(
 }
 
 @Composable
-fun CreateChatModalSheet(userList: List<User>) {
+fun CreateChatModalSheet(userList: List<User>,
+                         onClick: (String) -> Unit) {
     LazyColumn() {
         items(userList) {
-            user -> CreateChatUserCard(user)
+            user -> CreateChatUserCard(user, onClick)
         }
     }
 }
@@ -97,7 +99,8 @@ fun CreateChatModalSheet(userList: List<User>) {
 @Preview(showBackground = true)
 @Composable
 fun CreateChatUserCard(
-    user: User
+    user: User,
+    onClick: (String) -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -105,7 +108,13 @@ fun CreateChatUserCard(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         ),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+        modifier = Modifier.fillMaxWidth()
+            .clickable {
+                user.uid?.let {
+                    onClick(it)
+                }
+            }
+            .padding(vertical = 6.dp)
     ) {
         Row(
             modifier = Modifier

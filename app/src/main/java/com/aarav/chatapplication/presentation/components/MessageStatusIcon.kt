@@ -1,4 +1,4 @@
-package com.aarav.chatapplication.components
+package com.aarav.chatapplication.presentation.components
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
