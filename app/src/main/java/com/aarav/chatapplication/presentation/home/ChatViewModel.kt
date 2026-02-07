@@ -122,7 +122,7 @@ class ChatViewModel
                         )
                     }
 
-                    autoMarkDelivered(messageList)
+//                    autoMarkDelivered(messageList)
                     autoMarksRead(messageList)
                 }
         }
@@ -177,24 +177,24 @@ class ChatViewModel
         }
     }
 
-    private fun autoMarkDelivered(messages: List<Message>) {
-        val chatId = currentChatId ?: return
-        val myId = currentUserId ?: return
-
-        viewModelScope.launch {
-            val pending = messages.filter {
-                it.status == MessageStatus.SENT.name
-                        && it.senderId != myId
-            }
-
-            if (pending.isNotEmpty()) {
-                messageRepository.makeMessageDelivered(
-                    chatId,
-                    pending.map { it.messageId }
-                )
-            }
-        }
-    }
+//    private fun autoMarkDelivered(messages: List<Message>) {
+//        val chatId = currentChatId ?: return
+//        val myId = currentUserId ?: return
+//
+//        viewModelScope.launch {
+//            val pending = messages.filter {
+//                it.status == MessageStatus.SENT.name
+//                        && it.senderId != myId
+//            }
+//
+//            if (pending.isNotEmpty()) {
+//                messageRepository.makeMessageDelivered(
+//                    chatId,
+//                    pending.map { it.messageId }
+//                )
+//            }
+//        }
+//    }
 
     fun autoMarksRead(messages: List<Message>) {
         val chatId = currentChatId ?: return

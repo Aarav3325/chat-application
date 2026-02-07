@@ -10,7 +10,7 @@ sealed class NavItem(val name: String, val path: String, val icon: Int, val fill
         R.drawable.chat_nav_filled
     )
     object Profile : NavItem(
-        "Services",
+        "Profile",
         NavRoute.Profile.path,
         R.drawable.user_nav,
         R.drawable.user_nav_filled

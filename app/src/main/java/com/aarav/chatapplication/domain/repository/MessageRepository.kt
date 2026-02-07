@@ -24,4 +24,6 @@ interface MessageRepository {
         userId: String,
         messageIds: List<String>
     )
+
+    suspend fun makeChatMessagesDelivered(chatId: String, receiverId: String)
 }

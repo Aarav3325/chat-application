@@ -65,11 +65,13 @@ class MessageRepositoryImpl @Inject constructor(
     override fun listenMessages(chatId: String): Flow<List<Message>> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.messages(chatId))
 
+        Log.i("SEND", ref.toString())
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val messages = snapshot.children.mapNotNull {
                     it.getValue(Message::class.java)
                 }.sortedBy { it.timestamp }
+
 
                 trySend(messages)
             }
@@ -113,5 +115,33 @@ class MessageRepositoryImpl @Inject constructor(
         updates[FirebasePaths.unread(userId, chatId)] = 0
 
         rootRef.updateChildren(updates).await()
+    }
+
+    override suspend fun makeChatMessagesDelivered(
+        chatId: String,
+        receiverId: String
+    ) {
+        val ref = rootRef.child(FirebasePaths.messages(chatId))
+
+        val snapshot = ref.get().await()
+
+        val updates = mutableMapOf<String, Any>()
+
+        snapshot.children.forEach {
+            msg ->
+            val senderId = msg.child("senderId").getValue(String::class.java)
+            val status = msg.child("status").getValue(String::class.java)
+
+            if(
+                senderId != receiverId
+                && status == MessageStatus.SENT.name
+            ) {
+                updates["chats/$chatId/messages/${msg.key}/status"] = MessageStatus.DELIVERED.name
+            }
+        }
+
+        if(updates.isNotEmpty()) {
+            rootRef.updateChildren(updates).await()
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.presentation.chat
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -56,6 +57,7 @@ import com.aarav.chatapplication.data.model.Message
 import com.aarav.chatapplication.presentation.home.ChatViewModel
 import com.aarav.chatapplication.ui.theme.manrope
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -250,23 +252,25 @@ fun ChatScreen(
 
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier
-                            .padding(
-                                top = 16.dp
+                    if(uiState.messages.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier
+                                .padding(
+                                    top = 16.dp
+                                )
+                                .align(Alignment.TopCenter)
+                        ) {
+                            Text(
+                                buildRelativeTime(uiState.messages.first().timestamp),
+                                fontFamily = manrope,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
                             )
-                            .align(Alignment.TopCenter)
-                    ) {
-                        Text(
-                            "Today",
-                            fontFamily = manrope,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
-                        )
+                        }
                     }
                 }
             }
@@ -502,4 +506,35 @@ fun ChatCard(
 fun formatTimestamp(timestamp: Long): String {
     val df = SimpleDateFormat("HH:mm", Locale.getDefault())
     return df.format(Date(timestamp))
+}
+
+fun formatDateWise(timestamp: Long): String {
+    val df = SimpleDateFormat("dd MMM YYYY", Locale.getDefault())
+    return df.format(Date(timestamp))
+}
+
+fun buildRelativeTime(timestamp: Long): String {
+
+    val nowCal = Calendar.getInstance()
+    val msgCal = Calendar.getInstance().apply {
+        timeInMillis = timestamp
+    }
+
+    val nowDay = nowCal.get(Calendar.YEAR) * 1000 +
+            nowCal.get(Calendar.DAY_OF_YEAR)
+
+    Log.i("DATE", nowDay.toString())
+
+    val msgDay = msgCal.get(Calendar.YEAR) * 1000 +
+            msgCal.get(Calendar.DAY_OF_YEAR)
+
+    Log.i("DATE", msgDay.toString())
+
+    val diffDays = nowDay - msgDay
+
+    return when (diffDays) {
+        0 -> "Today"
+        1 -> "Yesterday"
+        else -> formatDateWise(timestamp)
+    }
 }

@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -109,12 +110,12 @@ fun CreateChatUserCard(
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         ),
         modifier = Modifier.fillMaxWidth()
-            .clickable {
+            .padding(vertical = 6.dp)
+            .clip(RoundedCornerShape(24.dp)).clickable {
                 user.uid?.let {
                     onClick(it)
                 }
             }
-            .padding(vertical = 6.dp)
     ) {
         Row(
             modifier = Modifier

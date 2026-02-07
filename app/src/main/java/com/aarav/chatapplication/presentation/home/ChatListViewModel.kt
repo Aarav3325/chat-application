@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,7 +32,7 @@ class ChatListViewModel
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-//        getUserList()
+        getUserList()
     }
 
     fun observeChatList(myId: String) {
@@ -78,13 +79,20 @@ class ChatListViewModel
                                 unreadCount = unread,
                                 isOnline = false
                             )
+                                .also {
+                                    markChatDeliveredIfNeeded(
+                                        chatId = chatId,
+                                        myId = myId,
+                                        unreadCount = unread
+                                    )
+                                }
                         }
                     }
 
 
                     combine(chatFlows) { itemsArray ->
 
-                        Log.i("MYTAG","final list : " + itemsArray.toString())
+                        Log.i("MYTAG", "final list : " + itemsArray.toString())
                         itemsArray
                             .toList()
                             .sortedByDescending { it.lastTimestamp }
@@ -101,6 +109,39 @@ class ChatListViewModel
                 }
         }
     }
+
+    private fun markChatDeliveredIfNeeded(
+        chatId: String,
+        myId: String,
+        unreadCount: Int
+    ) {
+        if (unreadCount <= 0) return
+
+        viewModelScope.launch {
+            messageRepository.makeChatMessagesDelivered(
+                chatId = chatId,
+                receiverId = myId
+            )
+        }
+    }
+
+        fun getUserList() {
+        viewModelScope.launch {
+            userRepository.getUserList()
+                .catch { e ->
+                    Log.i("MYTAG", e.message.toString())
+                }
+                .collect { user ->
+                    _uiState
+                        .update {
+                            it.copy(
+                                userList = user
+                            )
+                        }
+                }
+        }
+    }
+
 
 }
 
