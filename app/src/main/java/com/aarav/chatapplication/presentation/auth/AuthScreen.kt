@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.ui.theme.manrope
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -67,6 +68,16 @@ fun AuthScreen(
         if(uiState.isCodeSent) {
             Log.i("AUTH", "Code sent for ${uiState.phone}")
         }
+    }
+
+    MyAlertDialog(
+        shouldShowDialog = uiState.showErrorDialog,
+        onDismissRequest = { viewModel.clearError() },
+        title = "Invalid Input",
+        message = uiState.error ?: "",
+        confirmButtonText = "Dismiss"
+    ) {
+        viewModel.clearError()
     }
 
         if(!uiState.isCodeSent) {
@@ -113,7 +124,8 @@ fun AuthScreen(
 
                 OutlinedTextField(
                     value = uiState.phone,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(16.dp),
                     onValueChange = {
                             input ->
@@ -173,6 +185,15 @@ fun AuthScreen(
                         activity?.let {
                             viewModel.sendOtp(finalPhone, it)
                         }
+//                        if(uiState.isInputValid) {
+//                            val finalPhone = "+91${uiState.phone}"
+//                            activity?.let {
+//                                viewModel.sendOtp(finalPhone, it)
+//                            }
+//                        }
+//                        else {
+//                            viewModel.validateBeforeNext()
+//                        }
                     },
                     modifier = Modifier
                         .height(48.dp),

@@ -31,6 +31,7 @@ data class AuthUiState(
     val nameError: String? = null,
     val phoneError: String? = null,
     val isInputValid: Boolean = false,
+    val otpValid: Boolean = false
 )
 
 @HiltViewModel
@@ -85,80 +86,112 @@ class AuthViewModel @Inject constructor(
         if (_uiState.value.isLoading) return
 
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = true,
-                    error = null
-                )
-            }
 
-            authRepository.sendOtp(phone, activity)
-                .collect { result ->
-                    when (result) {
-                        is PhoneAuthState.CodeSent -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isCodeSent = true,
-                                    verificationId = result.verificationId
-                                )
+            if (phone.length == 13) {
+                _uiState.update {
+                    it.copy(
+                        isInputValid = true,
+                        isLoading = true,
+                        error = null
+                    )
+                }
+
+
+
+                authRepository.sendOtp(phone, activity)
+                    .collect { result ->
+                        when (result) {
+                            is PhoneAuthState.CodeSent -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        isCodeSent = true,
+                                        verificationId = result.verificationId
+                                    )
+                                }
                             }
-                        }
 
-                        is PhoneAuthState.Verified -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isVerified = true,
-                                    userId = result.uid
-                                )
+                            is PhoneAuthState.Verified -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        isVerified = true,
+                                        userId = result.uid
+                                    )
+                                }
                             }
-                        }
 
-                        is PhoneAuthState.Error -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    error = result.message,
-                                    showErrorDialog = true
-                                )
+                            is PhoneAuthState.Error -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        error = result.message,
+                                        showErrorDialog = true
+                                    )
+                                }
                             }
                         }
                     }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        showErrorDialog = true,
+                        error = "Please enter a valid 10 digit phone number"
+                    )
                 }
+            }
         }
     }
 
     fun verifyOtp(verificationId: String, otp: String) {
         viewModelScope.launch {
 
-            _uiState.update {
-                it.copy(
-                    isLoading = true,
-                    error = null
-                )
-            }
 
-            when (val result = authRepository.verifyOtp(verificationId, otp)) {
-                is Result.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isVerified = true,
-                        )
-                    }
+            if (otp.length == 6) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = true,
+                        error = null
+                    )
                 }
 
-                is Result.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            error = result.message,
-                            showErrorDialog = true,
-                            isLoading = false
-                        )
+                when (val result = authRepository.verifyOtp(verificationId, otp)) {
+                    is Result.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isVerified = true,
+                            )
+                        }
+                    }
+
+                    is Result.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                error = result.message,
+                                showErrorDialog = true,
+                                isLoading = false
+                            )
+                        }
                     }
                 }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        showErrorDialog = true,
+                        error = "Enter a valid OTP"
+                    )
+                }
             }
+        }
+    }
+
+    fun clearError() {
+        _uiState.update {
+            it.copy(
+                showErrorDialog = false,
+                error = null
+            )
         }
     }
 

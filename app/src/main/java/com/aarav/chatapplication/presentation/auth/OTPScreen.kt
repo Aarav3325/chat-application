@@ -49,6 +49,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.type
+import com.aarav.chatapplication.presentation.components.MyAlertDialog
 
 
 @Preview(showBackground = true)
@@ -76,6 +77,16 @@ fun OPTScreen(
         if(uiState.isVerified) {
             navigateToHome()
         }
+    }
+
+    MyAlertDialog(
+        shouldShowDialog = uiState.showErrorDialog,
+        onDismissRequest = { viewModel.clearError() },
+        title = "Invalid OTP",
+        message = uiState.error ?: "",
+        confirmButtonText = "Dismiss"
+    ) {
+        viewModel.clearError()
     }
 
 
