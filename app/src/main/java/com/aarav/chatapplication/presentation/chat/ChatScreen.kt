@@ -6,20 +6,28 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -45,15 +53,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.data.model.Message
 import com.aarav.chatapplication.presentation.components.MessageStatusIcon
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
-import com.aarav.chatapplication.data.model.Message
 import com.aarav.chatapplication.presentation.home.ChatViewModel
 import com.aarav.chatapplication.ui.theme.manrope
 import java.text.SimpleDateFormat
@@ -73,19 +82,22 @@ fun ChatScreen(
 ) {
 
     val uiState by chatViewModel.uiState.collectAsState()
+//
+//    val context = LocalContext.current
 
-    val context = LocalContext.current
+    Log.i("MYTAG", "chat: " + chatId)
 
     var text by remember {
         mutableStateOf("")
     }
 
     LaunchedEffect(Unit) {
+
         chatViewModel.observeMessages(chatId, myId)
         chatViewModel.observePresence(otherUserId)
         chatViewModel.getUser(otherUserId)
+        chatViewModel.isChatCreated(chatId, myId)
     }
-
 
     MyAlertDialog(
         shouldShowDialog = uiState.showErrorDialog,
@@ -100,7 +112,7 @@ fun ChatScreen(
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
+//        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
 
@@ -114,11 +126,12 @@ fun ChatScreen(
         ) {
 
             Column(
+                modifier = Modifier.fillMaxSize()
             ) {
                 Box {
                     Row(
                         modifier = Modifier
-                            .padding(top = 48.dp)
+                            .padding(top = 0.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -128,10 +141,12 @@ fun ChatScreen(
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier.clip(CircleShape).clickable {
-                                    back()
-                                    chatViewModel.onTypingStopped()
-                                }
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        back()
+                                        chatViewModel.onTypingStopped()
+                                    }
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.arrow_back),
@@ -186,8 +201,9 @@ fun ChatScreen(
                                         )
                                     } else {
                                         when {
+
                                             uiState.presence == null -> ""
-                                            uiState.presence!!.isOnline -> {
+                                            uiState.presence!!.online -> {
                                                 Surface(
                                                     shape = CircleShape,
                                                     color = Color(0xFF00FF85),
@@ -202,8 +218,9 @@ fun ChatScreen(
                                                     color = Color(0xFF00FF85)
                                                 )
                                             }
+//uiState.presence!!.lastSeen > 0 &&
+                                            !uiState.presence!!.online -> {
 
-                                            uiState.presence!!.lastSeen > 0 -> {
                                                 Text(
                                                     "last active at ${formatTimestamp(uiState.presence!!.lastSeen)}",
                                                     fontFamily = manrope,
@@ -221,15 +238,14 @@ fun ChatScreen(
                     }
                 }
 
-
-                Box() {
+//                Box() {
 
                     LazyColumn(
                         flingBehavior = ScrollableDefaults.flingBehavior(),
                         modifier = Modifier
                             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .fillMaxSize()
-                            .padding(bottom = 102.dp)
+                            .weight(1f)
+                            .padding(bottom = 0.dp)
                     ) {
 //                        stickyHeader {
 //
@@ -249,48 +265,73 @@ fun ChatScreen(
                             ChatCard(chat, isMine)
                         }
 
-
-                    }
-
-                    if(uiState.messages.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier
-                                .padding(
-                                    top = 16.dp
-                                )
-                                .align(Alignment.TopCenter)
-                        ) {
-                            Text(
-                                buildRelativeTime(uiState.messages.first().timestamp),
-                                fontFamily = manrope,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
-                            )
+                        item {
+                            if (!uiState.isChatCreated) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                        .padding(horizontal = 24.dp, vertical = 36.dp)
+                                ) {
+                                    Text(
+                                        "Say Hey to ${uiState.user?.name} and start a conversation",
+                                        fontFamily = manrope,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
+
+
                     }
+
+
+//                }
+                TextTypeBox(
+                    text,
+                    onValueChange = {
+                        text = it
+                    },
+                    onStartTyping = {
+                        chatViewModel.onTypingStarted()
+                    },
+                    onStopTyping = {
+                        chatViewModel.onTypingStopped()
+                    },
+                    error = uiState.messageError,
+                    Modifier
+                        //.align(Alignment.BottomCenter)
+                        .imePadding()
+                ) {
+                    chatViewModel.sendMessages(otherUserId, text)
+                    text = ""
+                    chatViewModel.onTypingStopped()
+                }
+
+            }
+            if (uiState.messages.isNotEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(
+                            top = 92.dp
+                        )
+                ) {
+                    Text(
+                        buildRelativeTime(uiState.messages.first().timestamp),
+                        fontFamily = manrope,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
+                    )
                 }
             }
-            TextTypeBox(
-                text,
-                onValueChange = {
-                    text = it
-                },
-                onStartTyping = {
-                    chatViewModel.onTypingStarted()
-                },
-                onStopTyping = {
-                    chatViewModel.onTypingStopped()
-                },
-                error = uiState.messageError,
-                Modifier.align(Alignment.BottomCenter)
-            ) {
-                chatViewModel.sendMessages(otherUserId, text)
-                text = ""
-            }
+
+
         }
     }
 }
@@ -310,18 +351,18 @@ fun TextTypeBox(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+
     ) {
         TextField(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(22.dp),
+                .padding(16.dp),
             value = text,
             onValueChange = {
                 onValueChange(it)
-                if(it.isNotBlank()) {
+                if (it.isNotBlank()) {
                     onStartTyping()
-                }
-                else {
+                } else {
                     onStopTyping()
                 }
             },

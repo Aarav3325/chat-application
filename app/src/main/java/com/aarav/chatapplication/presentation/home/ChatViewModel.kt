@@ -51,9 +51,10 @@ class ChatViewModel
 
         viewModelScope.launch {
             presenceRepository.observePresence(otherUserId)
-                .collect {
-                    presence ->
+                .collect { presence ->
                     _uiState.update {
+                        Log.i("PRESENCE", "PRESENCE"+ presence.online.toString())
+
                         it.copy(
                             presence = presence
                         )
@@ -243,11 +244,23 @@ class ChatViewModel
     fun getUser(userId: String) {
         viewModelScope.launch {
             userRepository.findUserByUserId(userId)
-                .collect {
-                    user ->
+                .collect { user ->
                     _uiState.update {
                         it.copy(
                             user = user
+                        )
+                    }
+                }
+        }
+    }
+
+    fun isChatCreated(chatId: String, userId: String) {
+        viewModelScope.launch {
+            messageRepository.isChatCreated(chatId, userId)
+                .collect {
+                    _uiState.update { state ->
+                        state.copy(
+                            isChatCreated = it
                         )
                     }
                 }
@@ -273,5 +286,6 @@ data class ChatUiState(
     val isSending: Boolean = false,
     val isOtherUserTyping: Boolean = false,
     val presence: Presence? = null,
-    val user: User? = null
+    val user: User? = null,
+    val isChatCreated: Boolean = false
 )

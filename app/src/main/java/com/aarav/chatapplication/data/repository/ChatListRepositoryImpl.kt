@@ -19,6 +19,7 @@ class ChatListRepositoryImpl
 
     val rootRef = firebaseDatabase.reference
 
+    // Retrieve chat list
     override fun observeUserChats(userId: String): Flow<List<String>> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.userChats(userId))
 
@@ -69,7 +70,11 @@ class ChatListRepositoryImpl
 
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                trySend(snapshot.getValue(Int::class.java) ?: 0)
+//                Log.i("UNREAD", snapshot.getValue(Int::class.java).toString())
+//                val unread = snapshot.getValue<Int>(Int::class.java) ?: 0
+//                trySend(unread)
+                val unread = (snapshot.value as? Long)?.toInt() ?: 0
+                trySend(unread)
             }
 
             override fun onCancelled(error: DatabaseError) {

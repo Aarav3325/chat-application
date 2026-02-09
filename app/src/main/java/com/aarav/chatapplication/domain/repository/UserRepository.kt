@@ -12,4 +12,6 @@ interface UserRepository {
     fun getUserList(): Flow<List<User>>
 
     fun findUserByUserId(userId: String): Flow<User>
+
+    fun getCurrentUser(): Result<String?>
 }

@@ -18,6 +18,7 @@ class TypingRepositoryImpl @Inject constructor(
 
     val rootRef = firebaseDatabase.reference
 
+    // observe if the other user is typing or not
     override fun observeTyping(chatId: String): Flow<Set<String>> = callbackFlow {
         val ref = rootRef.child("typing")
             .child(chatId)
@@ -40,11 +41,13 @@ class TypingRepositoryImpl @Inject constructor(
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    // set status to typing
     override suspend fun setTyping(chatId: String, userId: String) {
         rootRef.child(FirebasePaths.typing(chatId, userId))
             .setValue(true).await()
     }
 
+    // clear typing status
     override suspend fun clearTyping(chatId: String, userId: String) {
         rootRef.child(FirebasePaths.typing(chatId, userId))
             .removeValue().await()

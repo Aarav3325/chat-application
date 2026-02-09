@@ -1,6 +1,7 @@
 package com.aarav.chatapplication.presentation.home
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -53,21 +54,23 @@ import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
 import com.aarav.chatapplication.presentation.components.CustomBottomSheet
 import com.aarav.chatapplication.presentation.model.ChatListItem
 import com.aarav.chatapplication.ui.theme.manrope
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Preview(showBackground = true)
 @Composable
 fun HomeScreen(
-    userId: String,
-    navigateToChat: (String) -> Unit,
+    navigateToChat: (String, String) -> Unit,
+    onLogout: () -> Unit,
     chatListViewModel: ChatListViewModel
 ) {
 
     val uiState by chatListViewModel.uiState.collectAsState()
 
-    LaunchedEffect(userId) {
-        chatListViewModel.observeChatList(userId)
+    Log.i("USER", "userId: ${uiState.userId}")
+    LaunchedEffect(uiState.userId) {
+        uiState.userId?.let {
+            chatListViewModel.observeChatList(it)
+        }
         Log.i("CHAT", "chatList : " + uiState.chatList.toString())
     }
 
@@ -79,7 +82,11 @@ fun HomeScreen(
         skipPartiallyExpanded = false
     )
 
-    if (showCreateChatModal) {
+    LaunchedEffect(uiState.userId) {
+        chatListViewModel.getUserId()
+    }
+
+    AnimatedVisibility(showCreateChatModal) {
         CustomBottomSheet(
             sheetState = sheetState,
             onDismiss = {
@@ -87,8 +94,12 @@ fun HomeScreen(
             },
             title = "Create New Chat"
         ) {
-            CreateChatModalSheet(uiState.userList) {
-                navigateToChat(it)
+            CreateChatModalSheet(
+                uiState.userList,
+                onDismiss = { showCreateChatModal = false }) { receiverId ->
+                uiState.userId?.let { userId ->
+                    navigateToChat(receiverId, userId)
+                }
             }
         }
     }
@@ -114,24 +125,37 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(R.drawable.create_chat),
                             contentDescription = "create chat",
-                            tint = MaterialTheme.colorScheme.secondary
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            chatListViewModel.logout()
+                            onLogout()
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.log_out),
+                            contentDescription = "log out",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             )
         }
     ) {
-        if(uiState.isLoading) {
+        if (uiState.isLoading) {
             Box(
-                modifier = Modifier.padding(it).padding(bottom = 88.dp)
+                modifier = Modifier
+                    .padding(it)
+                    .padding(bottom = 88.dp)
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
 
                 ContainedLoadingIndicator()
             }
-        }
-        else {
+        } else {
             LazyColumn(
                 modifier = Modifier.padding(it)
             ) {
@@ -157,7 +181,9 @@ fun HomeScreen(
                     ChatItem(
                         item
                     ) {
-                        navigateToChat(item.otherUserId)
+                        uiState.userId?.let { userId ->
+                            navigateToChat(item.otherUserId, userId)
+                        }
                     }
                 }
             }
@@ -258,7 +284,7 @@ fun ChatItem(
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    if(chatListItem.isOnline) {
+                    if (chatListItem.isOnline) {
                         Spacer(Modifier.width(12.dp))
 
                         Surface(
@@ -303,7 +329,7 @@ fun ChatItem(
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                if(chatListItem.unreadCount > 0) {
+                if (chatListItem.unreadCount > 0) {
                     Surface(
                         shape = CircleShape,
                         modifier = Modifier.size(22.dp),

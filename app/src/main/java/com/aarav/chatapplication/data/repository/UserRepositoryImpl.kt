@@ -37,6 +37,15 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getCurrentUser(): Result<String> {
+        val user = firebaseAuth.currentUser
+        return if (user != null) {
+            Result.Success(user.uid)
+        } else {
+            Result.Error("User not logged in")
+        }
+    }
+
     override suspend fun writeTestData() {
         val userList = UserData.userList
 

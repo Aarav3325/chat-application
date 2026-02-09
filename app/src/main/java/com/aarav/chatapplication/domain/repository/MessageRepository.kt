@@ -14,10 +14,10 @@ interface MessageRepository {
 
     fun listenMessages(chatId: String): Flow<List<Message>>
 
-    suspend fun makeMessageDelivered(
-        chatId: String,
-        messageIds: List<String>
-    )
+//    suspend fun makeMessageDelivered(
+//        chatId: String,
+//        messageIds: List<String>
+//    )
 
     suspend fun makeMessageRead(
         chatId: String,
@@ -26,4 +26,6 @@ interface MessageRepository {
     )
 
     suspend fun makeChatMessagesDelivered(chatId: String, receiverId: String)
+
+    fun isChatCreated(chatId: String, userId: String): Flow<Boolean>
 }

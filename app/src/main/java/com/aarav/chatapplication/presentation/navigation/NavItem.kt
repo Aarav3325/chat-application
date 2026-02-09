@@ -6,7 +6,7 @@ sealed class NavItem(val name: String, val path: String, val icon: Int, val fill
     object Chat : NavItem(
         "Home",
         NavRoute.Home.path,
-        R.drawable.chat_nav,
+        R.drawable.chat_circle,
         R.drawable.chat_nav_filled
     )
     object Profile : NavItem(

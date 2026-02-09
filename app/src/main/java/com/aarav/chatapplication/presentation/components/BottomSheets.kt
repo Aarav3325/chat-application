@@ -1,7 +1,6 @@
 package com.aarav.chatapplication.presentation.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -88,11 +87,14 @@ fun CustomBottomSheet(
 }
 
 @Composable
-fun CreateChatModalSheet(userList: List<User>,
-                         onClick: (String) -> Unit) {
+fun CreateChatModalSheet(
+    userList: List<User>,
+    onDismiss: () -> Unit,
+    onClick: (String) -> Unit
+) {
     LazyColumn() {
-        items(userList) {
-            user -> CreateChatUserCard(user, onClick)
+        items(userList) { user ->
+            CreateChatUserCard(user, onClick, onDismiss)
         }
     }
 }
@@ -101,21 +103,30 @@ fun CreateChatModalSheet(userList: List<User>,
 @Composable
 fun CreateChatUserCard(
     user: User,
-    onClick: (String) -> Unit
+    onClick: (String) -> Unit,
+    onDismiss: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(24.dp),
+        onClick = {
+            user.uid?.let {
+                onClick(it)
+                onDismiss()
+            }
+        },
+        shape = RoundedCornerShape (24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(vertical = 6.dp)
-            .clip(RoundedCornerShape(24.dp)).clickable {
-                user.uid?.let {
-                    onClick(it)
-                }
-            }
+            .clip(RoundedCornerShape(24.dp))
+//            .clickable {
+//                user.uid?.let {
+//                    onClick(it)
+//                }
+//            }
     ) {
         Row(
             modifier = Modifier

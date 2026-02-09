@@ -47,6 +47,15 @@ class MessageRepositoryImpl @Inject constructor(
 
             Log.i("SEND", ChatMeta(text, timestamp).toString())
 
+            /*
+            * paths to be updated
+            * 1. user_chats - user_chats/$senderId/$chatId & user_chats/$receiverId/$chatId to true in
+            * order to fetch chat list
+            * 2. message - updated message pool for the current chat
+            * 3. chat_meta - for last timestamp and message in current chat
+            * 4. unread - update unread count for receiver
+            * */
+
             val updates = hashMapOf<String, Any>(
                 "user_chats/$senderId/$chatId" to true,
                 "user_chats/$receiverId/$chatId" to true,
@@ -62,6 +71,7 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    // Retrieve all messages for current chat ordered by timestamp
     override fun listenMessages(chatId: String): Flow<List<Message>> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.messages(chatId))
 
@@ -88,19 +98,20 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun makeMessageDelivered(
-        chatId: String,
-        messageIds: List<String>
-    ) {
-        val updates = mutableMapOf<String, Any>()
+//    override suspend fun makeMessageDelivered(
+//        chatId: String,
+//        messageIds: List<String>
+//    ) {
+//        val updates = mutableMapOf<String, Any>()
+//
+//        messageIds.forEach { id ->
+//            updates["chats/$chatId/messages/$id/status"] = MessageStatus.DELIVERED.name
+//        }
+//
+//        rootRef.updateChildren(updates).await()
+//    }
 
-        messageIds.forEach { id ->
-            updates["chats/$chatId/messages/$id/status"] = MessageStatus.DELIVERED.name
-        }
-
-        rootRef.updateChildren(updates).await()
-    }
-
+    // Mark messages as read when user open the chat
     override suspend fun makeMessageRead(
         chatId: String,
         userId: String,
@@ -117,6 +128,7 @@ class MessageRepositoryImpl @Inject constructor(
         rootRef.updateChildren(updates).await()
     }
 
+    // Mark messages as delivered when user opens app
     override suspend fun makeChatMessagesDelivered(
         chatId: String,
         receiverId: String
@@ -143,5 +155,38 @@ class MessageRepositoryImpl @Inject constructor(
         if(updates.isNotEmpty()) {
             rootRef.updateChildren(updates).await()
         }
+    }
+
+    /* check if chat already exists
+       use case - show empty message when chat is not yet created
+    */
+    override fun isChatCreated(chatId: String, userId: String): Flow<Boolean> = callbackFlow {
+
+        val ref = rootRef.child(FirebasePaths.userChats(userId))
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val chats = snapshot.children.mapNotNull {
+                    it.key
+                }.toSet()
+
+                val isCreated = chats.any {
+                    it == chatId
+                }
+
+                Log.i("CHAT", "is created: $isCreated")
+
+                trySend(isCreated)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addValueEventListener(listener)
+
+        awaitClose { ref.removeEventListener(listener) }
+
     }
 }

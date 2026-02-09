@@ -1,6 +1,7 @@
 package com.aarav.chatapplication
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -8,6 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -34,17 +36,20 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var firebaseAuth: FirebaseAuth
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val currentUserId = firebaseAuth.currentUser?.uid
+        var currentUserId: String? = firebaseAuth.currentUser?.uid
 
-//        currentUserId?.let {
-//            presenceRepository.setupPresence(it)
-//        }
+
+
+
 //
 //        presenceRepository.setupPresence("")
+
+
 
         setContent {
             AppTheme {
@@ -57,6 +62,11 @@ class MainActivity : ComponentActivity() {
                 val navItems = listOf(
                     NavRoute.Home.path
                 )
+
+                LaunchedEffect(Unit) {
+                    currentUserId = firebaseAuth.currentUser?.uid
+
+                }
 
                 val show = currentRoute in navItems
 

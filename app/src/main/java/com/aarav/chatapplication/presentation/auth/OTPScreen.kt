@@ -1,14 +1,18 @@
 package com.aarav.chatapplication.presentation.auth
 
 import android.util.Log
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +46,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.ui.theme.manrope
 import kotlinx.coroutines.delay
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.type
+
 
 @Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +90,7 @@ fun OPTScreen(
         ) {
 
             Text(
-                text = "Enter the 4-digit verification code (OTP) sent to your phone number",
+                text = "Enter the 6-digit verification code (OTP) sent to your phone number",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontFamily = manrope,
                 fontSize = 16.sp,
@@ -99,9 +109,15 @@ fun OPTScreen(
             )
 
             Spacer(Modifier.height(24.dp))
-            OtpInputField(
+//            OtpInputField(
+//                otp = otp,
+//                onOtpChange = { otp = it }
+//            )
+
+
+            OtpInput(
                 otp = otp,
-                onOtpChange = { otp = it }
+                onOtpChange = { if (it.length <= 6) otp = it }
             )
 
             Spacer(Modifier.height(54.dp))
@@ -148,6 +164,66 @@ fun OPTScreen(
 }
 
 @Composable
+fun OtpInput(
+    otp: String,
+    onOtpChange: (String) -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+        // Invisible but functional TextField
+        OutlinedTextField(
+            value = otp,
+            onValueChange = { value ->
+                if (value.all { it.isDigit() }) {
+                    onOtpChange(value.take(6))
+                }
+            },
+            modifier = Modifier
+                .focusRequester(focusRequester)
+                .fillMaxWidth()
+                .height(0.dp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            )
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            repeat(6) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
+                        .border(
+                            width = 1.dp,
+                            color = if (otp.length == index)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(6.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = otp.getOrNull(index)?.toString() ?: "",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+}
+
+
+@Composable
 fun OtpInputField(
     otp: String,
     onOtpChange: (String) -> Unit
@@ -182,9 +258,34 @@ fun OtpInputField(
                     }
                 },
                 modifier = Modifier
-                    .width(52.dp)
-                    .height(52.dp)
-                    .focusRequester(focusRequesters[index]),
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .focusRequester(focusRequesters[index])
+                    .onKeyEvent { event ->
+                        if (
+                            event.key == Key.Backspace &&
+                            event.type == KeyEventType.KeyDown &&
+                            otp.getOrNull(index).toString().isNullOrEmpty() &&
+                            index > 0
+                        ) {
+                            // move focus back
+                            focusRequesters[index - 1].requestFocus()
+
+                            // delete previous digit
+                            val newOtp = otp
+                                .padEnd(6, ' ')
+                                .toCharArray()
+                                .apply { this[index - 1] = ' ' }
+                                .concatToString()
+                                .trimEnd()
+
+                            onOtpChange(newOtp)
+
+                            true
+                        } else {
+                            false
+                        }
+                    },
                 textStyle = LocalTextStyle.current.copy(
                     textAlign = TextAlign.Center,
                     fontSize = 18.sp,

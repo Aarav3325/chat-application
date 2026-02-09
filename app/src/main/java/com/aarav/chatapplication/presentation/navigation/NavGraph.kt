@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.presentation.navigation
 
+import android.R.attr.type
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,24 +32,30 @@ fun NavGraph(
         navHostController,
         startDestination = if(isLoggedIn) NavRoute.Home.path else NavRoute.Auth.path
     ) {
-        addHomeScreen(navHostController, this, userId ?: "")
+        addHomeScreen(navHostController, this)
         addChatScreen(navHostController, this, userId ?: "")
         addAuthScreen(navHostController, this)
     }
 }
 
-fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, userId: String) {
+fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
     navGraphBuilder.composable(
         route = NavRoute.Home.path,
     ) {
 
 
         HomeScreen(
-            userId,
             navigateToChat = {
-                receiverId ->
+                receiverId, userId ->
 
-                navController.navigate(NavRoute.Chat.createRoute(receiverId))
+                navController.navigate(NavRoute.Chat.createRoute(receiverId, userId))
+            },
+            onLogout = {
+                navController.navigate(NavRoute.Auth.path) {
+                    popUpTo(NavRoute.Home.path) {
+                        inclusive = true
+                    }
+                }
             },
             chatListViewModel = hiltViewModel()
         )
@@ -69,17 +76,22 @@ fun addAuthScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
 
 fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, userId: String) {
     navGraphBuilder.composable(
-        route = NavRoute.Chat.path.plus("/{receiverId}"),
+        route = NavRoute.Chat.path.plus("/{receiverId}/{userId}"),
         arguments =
             listOf(
                 navArgument("receiverId") {
+                    type = NavType.StringType
+                },
+                navArgument("userId") {
                     type = NavType.StringType
                 }
             )
     ) {
 
         val receiverId = it.arguments?.getString("receiverId").toString()
+        val userId = it.arguments?.getString("userId").toString()
         Log.i("MYTAG", "rec: " + receiverId)
+        Log.i("MYTAG", "my: " + userId)
 
 //        ChatScreen(
 //            back = {
@@ -92,6 +104,8 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
 //        )
 
         val chatId = generateChatId(userId, receiverId)
+
+        Log.i("MYTAG", "chat: " + chatId)
 
         ChatScreen(
             back = {
