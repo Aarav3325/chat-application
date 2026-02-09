@@ -321,7 +321,7 @@ fun ChatScreen(
                         )
                 ) {
                     Text(
-                        buildRelativeTime(uiState.messages.first().timestamp),
+                        buildRelativeTime(uiState.messages.last().timestamp),
                         fontFamily = manrope,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
