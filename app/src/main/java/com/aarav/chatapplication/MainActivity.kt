@@ -60,7 +60,8 @@ class MainActivity : ComponentActivity() {
                 val currentRoute = navBackStackEntry?.destination?.route
 
                 val navItems = listOf(
-                    NavRoute.Home.path
+                    NavRoute.Home.path,
+                    NavRoute.Profile.path,
                 )
 
                 LaunchedEffect(Unit) {

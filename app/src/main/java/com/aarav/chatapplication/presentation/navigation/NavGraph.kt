@@ -16,6 +16,7 @@ import com.aarav.chatapplication.presentation.auth.AuthScreen
 import com.aarav.chatapplication.presentation.chat.ChatScreen
 import com.aarav.chatapplication.domain.repository.AuthRepository
 import com.aarav.chatapplication.presentation.home.HomeScreen
+import com.aarav.chatapplication.presentation.profile.ProfileScreen
 import com.aarav.chatapplication.utils.generateChatId
 
 @Composable
@@ -35,6 +36,7 @@ fun NavGraph(
         addHomeScreen(navHostController, this)
         addChatScreen(navHostController, this, userId ?: "")
         addAuthScreen(navHostController, this)
+        addProfileScreen(navHostController, this)
     }
 }
 
@@ -71,6 +73,14 @@ fun addAuthScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
             },
             viewModel = hiltViewModel()
         )
+    }
+}
+
+fun addProfileScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+    navGraphBuilder.composable(
+        route = NavRoute.Profile.path
+    ) {
+        ProfileScreen()
     }
 }
 
