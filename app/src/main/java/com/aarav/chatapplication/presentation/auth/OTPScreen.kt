@@ -79,15 +79,6 @@ fun OPTScreen(
         }
     }
 
-    MyAlertDialog(
-        shouldShowDialog = uiState.showErrorDialog,
-        onDismissRequest = { viewModel.clearError() },
-        title = "Invalid OTP",
-        message = uiState.error ?: "",
-        confirmButtonText = "Dismiss"
-    ) {
-        viewModel.clearError()
-    }
 
 
     var otp by remember { mutableStateOf("") }

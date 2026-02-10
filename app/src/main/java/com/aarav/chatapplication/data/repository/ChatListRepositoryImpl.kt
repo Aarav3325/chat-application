@@ -34,6 +34,7 @@ class ChatListRepositoryImpl
             }
 
             override fun onCancelled(error: DatabaseError) {
+                Log.i("CATCH", "error :" + error.message)
                 close(error.toException())
             }
         }
@@ -42,6 +43,7 @@ class ChatListRepositoryImpl
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    // retrieve last message in chat particular chat along with timestamp
     override fun observeChatMeta(chatId: String): Flow<Pair<String, Long>> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.chatMeta(chatId))
 
@@ -62,6 +64,7 @@ class ChatListRepositoryImpl
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    // retrieve unread count for the chatId
     override fun observeUnread(
         userId: String,
         chatId: String

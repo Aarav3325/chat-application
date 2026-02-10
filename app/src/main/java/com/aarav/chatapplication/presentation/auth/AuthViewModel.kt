@@ -31,8 +31,13 @@ data class AuthUiState(
     val nameError: String? = null,
     val phoneError: String? = null,
     val isInputValid: Boolean = false,
-    val otpValid: Boolean = false
+    val otpValid: Boolean = false,
+    val errorType: AuthError? = null
 )
+
+enum class AuthError {
+    invalidInput, invalidOTP
+}
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -126,7 +131,7 @@ class AuthViewModel @Inject constructor(
                                     it.copy(
                                         isLoading = false,
                                         error = result.message,
-                                        showErrorDialog = true
+                                        showErrorDialog = true,
                                     )
                                 }
                             }
@@ -136,6 +141,7 @@ class AuthViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         showErrorDialog = true,
+                        errorType = AuthError.invalidInput,
                         error = "Please enter a valid 10 digit phone number"
                     )
                 }
@@ -145,7 +151,6 @@ class AuthViewModel @Inject constructor(
 
     fun verifyOtp(verificationId: String, otp: String) {
         viewModelScope.launch {
-
 
             if (otp.length == 6) {
                 _uiState.update {
@@ -170,7 +175,8 @@ class AuthViewModel @Inject constructor(
                             it.copy(
                                 error = result.message,
                                 showErrorDialog = true,
-                                isLoading = false
+                                isLoading = false,
+                                errorType = AuthError.invalidOTP
                             )
                         }
                     }
@@ -179,6 +185,7 @@ class AuthViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         showErrorDialog = true,
+                        errorType = AuthError.invalidOTP,
                         error = "Enter a valid OTP"
                     )
                 }

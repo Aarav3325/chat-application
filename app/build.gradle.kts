@@ -68,6 +68,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
 
     implementation("androidx.compose.material3:material3:1.5.0-alpha13")
+    implementation("com.posthog:posthog-android:3.0.0")
 
     // Add the dependency for the Firebase Authentication library
     implementation("com.google.firebase:firebase-auth")

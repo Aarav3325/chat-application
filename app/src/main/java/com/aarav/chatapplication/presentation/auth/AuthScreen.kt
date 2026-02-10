@@ -73,7 +73,11 @@ fun AuthScreen(
     MyAlertDialog(
         shouldShowDialog = uiState.showErrorDialog,
         onDismissRequest = { viewModel.clearError() },
-        title = "Invalid Input",
+        title = when(uiState.errorType) {
+            AuthError.invalidInput -> "Invalid Input"
+            AuthError.invalidOTP -> "Invalid OTP"
+            else -> "Error"
+        },
         message = uiState.error ?: "",
         confirmButtonText = "Dismiss"
     ) {

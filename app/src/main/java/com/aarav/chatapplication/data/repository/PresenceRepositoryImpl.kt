@@ -20,6 +20,7 @@ class PresenceRepositoryImpl
 
     val rootRef = firebaseDatabase.reference
 
+    // observe active status
     override fun observePresence(userId: String): Flow<Presence> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.presence(userId))
 
@@ -42,6 +43,7 @@ class PresenceRepositoryImpl
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    // using .info/connected a firebase endpoint to set active status for current user
     override fun setupPresence(myUserId: String) {
         val presenceRef = rootRef.child(FirebasePaths.presence(myUserId))
         val connectedRef = rootRef.child("/.info/connected")

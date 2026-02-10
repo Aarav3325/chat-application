@@ -13,6 +13,7 @@ import com.aarav.chatapplication.presentation.model.ChatListItem
 import com.aarav.chatapplication.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,11 +22,13 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
-class ChatListViewModel
+class HomeScreenVM
 @Inject constructor(
     val messageRepository: MessageRepository,
     val userRepository: UserRepository,
@@ -55,6 +58,7 @@ class ChatListViewModel
         }
     }
 
+    @OptIn(FlowPreview::class)
     fun observeChatList(myId: String) {
 
         viewModelScope.launch {
@@ -65,6 +69,18 @@ class ChatListViewModel
 
             Log.i("MYTAG", "my id : " + myId)
             chatListRepository.observeUserChats(myId)
+                .timeout(10.seconds)
+                .catch {
+                    e ->
+                    Log.i("CATCH", e.message.toString())
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            showErrorDialog = true,
+                            error = "Unable to connect to servers please check your internet connection"
+                        )
+                    }
+                }
                 .collect { chatIds ->
 
                     if (chatIds.isEmpty()) {
@@ -190,6 +206,14 @@ class ChatListViewModel
         }
     }
 
+    fun clearError() {
+        _uiState.update {
+            it.copy(
+                showErrorDialog = false,
+                error = null
+            )
+        }
+    }
 
 }
 

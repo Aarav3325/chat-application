@@ -15,12 +15,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.io.IOException
+import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     val firebaseAuth: FirebaseAuth
 ) : AuthRepository {
+
     override suspend fun sendOtp(
         phone: String,
         activity: Activity
@@ -75,7 +77,10 @@ class AuthRepositoryImpl @Inject constructor(
             Log.i("AUTH", "Auto verified")
             Result.Success(Unit)
         }
-        catch (e: IOException) {
+        catch (e: CancellationException) {
+            throw e
+        }
+        catch (e: Exception) {
             Result.Error(e.message ?: "Failed to verify OTP")
         }
     }

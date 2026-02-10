@@ -7,19 +7,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -51,6 +55,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -91,12 +97,25 @@ fun ChatScreen(
         mutableStateOf("")
     }
 
+    val listState = rememberLazyListState()
+
+    var isFocused by remember {
+        mutableStateOf(false)
+    }
+    var isKeyboardOpen = isKeyboardOpen()
+
     LaunchedEffect(Unit) {
 
         chatViewModel.observeMessages(chatId, myId)
         chatViewModel.observePresence(otherUserId)
         chatViewModel.getUser(otherUserId)
         chatViewModel.isChatCreated(chatId, myId)
+    }
+
+    LaunchedEffect(isKeyboardOpen) {
+        if(isKeyboardOpen) {
+            listState.animateScrollToItem(uiState.messages.lastIndex)
+        }
     }
 
     MyAlertDialog(
@@ -241,11 +260,12 @@ fun ChatScreen(
 //                Box() {
 
                     LazyColumn(
+                        state = listState,
                         flingBehavior = ScrollableDefaults.flingBehavior(),
                         modifier = Modifier
                             .background(MaterialTheme.colorScheme.surfaceContainerLow)
                             .weight(1f)
-                            .padding(bottom = 0.dp)
+//                            .padding(WindowInsets.ime.asPaddingValues())
                     ) {
 //                        stickyHeader {
 //
@@ -289,6 +309,10 @@ fun ChatScreen(
 
 //                }
                 TextTypeBox(
+                    isFocused,
+                    onFocusChange = {
+                        isFocused = it
+                    },
                     text,
                     onValueChange = {
                         text = it
@@ -339,6 +363,8 @@ fun ChatScreen(
 @Preview(showBackground = true)
 @Composable
 fun TextTypeBox(
+    isFocused: Boolean,
+    onFocusChange: (Boolean) -> Unit,
     text: String,
     onValueChange: (String) -> Unit,
     onStartTyping: () -> Unit,
@@ -356,7 +382,11 @@ fun TextTypeBox(
         TextField(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .onFocusChanged {
+                    focusState ->
+                    onFocusChange(focusState.isFocused)
+                },
             value = text,
             onValueChange = {
                 onValueChange(it)
@@ -578,4 +608,12 @@ fun buildRelativeTime(timestamp: Long): String {
         1 -> "Yesterday"
         else -> formatDateWise(timestamp)
     }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun isKeyboardOpen(): Boolean {
+    val imeInsets = WindowInsets.isImeVisible
+    return imeInsets
 }

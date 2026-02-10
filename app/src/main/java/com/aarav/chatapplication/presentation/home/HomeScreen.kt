@@ -52,8 +52,10 @@ import com.aarav.chatapplication.R
 import com.aarav.chatapplication.presentation.chat.formatTimestamp
 import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
 import com.aarav.chatapplication.presentation.components.CustomBottomSheet
+import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.presentation.model.ChatListItem
 import com.aarav.chatapplication.ui.theme.manrope
+import com.posthog.PostHog
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Preview(showBackground = true)
@@ -61,15 +63,15 @@ import com.aarav.chatapplication.ui.theme.manrope
 fun HomeScreen(
     navigateToChat: (String, String) -> Unit,
     onLogout: () -> Unit,
-    chatListViewModel: ChatListViewModel
+    homeScreenVM: HomeScreenVM
 ) {
 
-    val uiState by chatListViewModel.uiState.collectAsState()
+    val uiState by homeScreenVM.uiState.collectAsState()
 
     Log.i("USER", "userId: ${uiState.userId}")
     LaunchedEffect(uiState.userId) {
         uiState.userId?.let {
-            chatListViewModel.observeChatList(it)
+            homeScreenVM.observeChatList(it)
         }
         Log.i("CHAT", "chatList : " + uiState.chatList.toString())
     }
@@ -78,12 +80,23 @@ fun HomeScreen(
         mutableStateOf(false)
     }
 
+    MyAlertDialog(
+        shouldShowDialog = uiState.showErrorDialog,
+        onDismissRequest = { homeScreenVM.clearError() },
+        title = "Error",
+        message = uiState.error ?: "",
+        confirmButtonText = "Dismiss"
+    ) {
+        homeScreenVM.clearError()
+    }
+
+
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false
     )
 
     LaunchedEffect(uiState.userId) {
-        chatListViewModel.getUserId()
+        homeScreenVM.getUserId()
     }
 
     AnimatedVisibility(showCreateChatModal) {
@@ -120,6 +133,12 @@ fun HomeScreen(
                     IconButton(
                         onClick = {
                             showCreateChatModal = true
+                            PostHog.capture(
+                                event = "button_clicked",
+                                properties = mapOf(
+                                    "button_name" to "create_new_chat"
+                                )
+                            )
                         }
                     ) {
                         Icon(
@@ -130,7 +149,7 @@ fun HomeScreen(
                     }
                     IconButton(
                         onClick = {
-                            chatListViewModel.logout()
+                            homeScreenVM.logout()
                             onLogout()
                         }
                     ) {

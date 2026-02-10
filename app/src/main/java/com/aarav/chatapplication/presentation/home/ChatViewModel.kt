@@ -43,8 +43,8 @@ class ChatViewModel
 //        getUser()
 //    }
 
-    private val _userList: MutableStateFlow<List<User>> = MutableStateFlow(emptyList())
-    val userList: StateFlow<List<User>> = _userList.asStateFlow()
+//    private val _userList: MutableStateFlow<List<User>> = MutableStateFlow(emptyList())
+//    val userList: StateFlow<List<User>> = _userList.asStateFlow()
 
     fun observePresence(otherUserId: String) {
         Log.i("MYTAG", otherUserId)

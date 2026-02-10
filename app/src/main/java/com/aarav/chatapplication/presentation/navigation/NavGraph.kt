@@ -1,6 +1,5 @@
 package com.aarav.chatapplication.presentation.navigation
 
-import android.R.attr.type
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -59,7 +58,7 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
                     }
                 }
             },
-            chatListViewModel = hiltViewModel()
+            homeScreenVM = hiltViewModel()
         )
     }
 }
