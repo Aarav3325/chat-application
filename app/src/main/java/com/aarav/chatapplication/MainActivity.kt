@@ -1,7 +1,7 @@
 package com.aarav.chatapplication
 
 import android.os.Bundle
-import android.util.Log
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +12,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aarav.chatapplication.domain.repository.AuthRepository
@@ -40,15 +43,38 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+//        ViewCompat.setOnApplyWindowInsetsListener(View(applicationContext)) { v, insets ->
+//            val systemBars =
+//                insets.getInsets(WindowInsetsCompat.Type.systemBars())
+//                    v.setPadding(
+//                    systemBars.left,
+//                    systemBars.top,
+//                    systemBars.right,
+//                    systemBars.bottom
+//                )
+//            insets
+//        }
+
+//        val controller = WindowInsetsControllerCompat(
+//            window,
+//            View(applicationContext)
+//        )
+//        controller.isAppearanceLightStatusBars = true
+//
+//        ViewCompat.setOnApplyWindowInsetsListener(View(applicationContext)) { v, insets ->
+//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+//            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+//            val bottomInset = maxOf(systemBars.bottom, ime.bottom)
+//            v.setPadding(systemBars.left, 0, systemBars.right, bottomInset)
+//            insets
+//        }
+
 
         var currentUserId: String? = firebaseAuth.currentUser?.uid
 
 
-
-
 //
 //        presenceRepository.setupPresence("")
-
 
 
         setContent {
@@ -78,8 +104,7 @@ class MainActivity : ComponentActivity() {
                             BottomNavigation(navController)
                         }
                     }
-                ) {
-                    innerPadding ->
+                ) { innerPadding ->
 
 
                     NavGraph(

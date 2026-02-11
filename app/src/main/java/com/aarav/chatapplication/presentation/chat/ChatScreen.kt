@@ -6,29 +6,21 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -55,11 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -113,7 +102,7 @@ fun ChatScreen(
     }
 
     LaunchedEffect(isKeyboardOpen) {
-        if(isKeyboardOpen) {
+        if (isKeyboardOpen) {
             listState.animateScrollToItem(uiState.messages.lastIndex)
         }
     }
@@ -145,111 +134,113 @@ fun ChatScreen(
         ) {
 
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding()
             ) {
-                Box {
+//                Box {
+                Row(
+                    modifier = Modifier
+                        .padding(top = 0.dp)
+                        .fillMaxWidth(),
+                    //.align(Alignment.TopCenter),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Row(
-                        modifier = Modifier
-                            .padding(top = 0.dp)
-                            .fillMaxWidth(),
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable {
+                                    back()
+                                    chatViewModel.onTypingStopped()
+                                }
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_back),
+                                contentDescription = "back",
                                 modifier = Modifier
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        back()
-                                        chatViewModel.onTypingStopped()
-                                    }
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.arrow_back),
-                                    contentDescription = "back",
-                                    modifier = Modifier
-                                        .padding(8.dp)
-                                        .size(18.dp)
-                                )
-                            }
+                                    .padding(8.dp)
+                                    .size(18.dp)
+                            )
+                        }
 
-                            Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(8.dp))
 
-                            Surface(
-                                modifier = Modifier.size(48.dp),
-                                shape = CircleShape,
-                                color = Color(0xFF00DDC5),
-                            ) {
-                                Image(
-                                    painter = painterResource(R.drawable.user),
-                                    contentDescription = "avatar",
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .padding(8.dp)
-                                )
-                            }
-
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(0.dp),
+                        Surface(
+                            modifier = Modifier.size(48.dp),
+                            shape = CircleShape,
+                            color = Color(0xFF00DDC5),
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.user),
+                                contentDescription = "avatar",
                                 modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .weight(1f)
+                                    .size(36.dp)
+                                    .padding(8.dp)
+                            )
+                        }
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(0.dp),
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .weight(1f)
+                        ) {
+                            Text(
+                                uiState.user?.name ?: "",
+                                fontFamily = manrope,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    uiState.user?.name ?: "",
-                                    fontFamily = manrope,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                                if (uiState.isOtherUserTyping) {
+                                    Text(
+                                        "typing...",
+                                        fontFamily = manrope,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                } else {
+                                    when {
 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    if (uiState.isOtherUserTyping) {
-                                        Text(
-                                            "typing...",
-                                            fontFamily = manrope,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
-                                    } else {
-                                        when {
+                                        uiState.presence == null -> ""
+                                        uiState.presence!!.online -> {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = Color(0xFF00FF85),
+                                                modifier = Modifier.size(8.dp)
+                                            ) { }
 
-                                            uiState.presence == null -> ""
-                                            uiState.presence!!.online -> {
-                                                Surface(
-                                                    shape = CircleShape,
-                                                    color = Color(0xFF00FF85),
-                                                    modifier = Modifier.size(8.dp)
-                                                ) { }
-
-                                                Text(
-                                                    "Online",
-                                                    fontFamily = manrope,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF00FF85)
-                                                )
-                                            }
-//uiState.presence!!.lastSeen > 0 &&
-                                            !uiState.presence!!.online -> {
-
-                                                Text(
-                                                    "last active at ${formatTimestamp(uiState.presence!!.lastSeen)}",
-                                                    fontFamily = manrope,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.tertiary
-                                                )
-                                            }
-
+                                            Text(
+                                                "Online",
+                                                fontFamily = manrope,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF00FF85)
+                                            )
                                         }
+//uiState.presence!!.lastSeen > 0 &&
+                                        !uiState.presence!!.online -> {
+
+                                            Text(
+                                                "last active at ${formatTimestamp(uiState.presence!!.lastSeen)}",
+                                                fontFamily = manrope,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.tertiary
+                                            )
+                                        }
+
                                     }
                                 }
                             }
@@ -259,14 +250,20 @@ fun ChatScreen(
 
 //                Box() {
 
-                    LazyColumn(
-                        state = listState,
-                        flingBehavior = ScrollableDefaults.flingBehavior(),
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .weight(1f)
+
+//                }
+                // }
+
+
+                LazyColumn(
+                    state = listState,
+                    flingBehavior = ScrollableDefaults.flingBehavior(),
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .weight(1f)
+
 //                            .padding(WindowInsets.ime.asPaddingValues())
-                    ) {
+                ) {
 //                        stickyHeader {
 //
 //                            Box(
@@ -278,36 +275,35 @@ fun ChatScreen(
 //
 //                        }
 
-                        items(uiState.messages) { chat ->
+                    items(uiState.messages) { chat ->
 
-                            val isMine = chat.senderId == myId
+                        val isMine = chat.senderId == myId
 
-                            ChatCard(chat, isMine)
-                        }
+                        ChatCard(chat, isMine)
+                    }
 
-                        item {
-                            if (!uiState.isChatCreated) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .padding(horizontal = 24.dp, vertical = 36.dp)
-                                ) {
-                                    Text(
-                                        "Say Hey to ${uiState.user?.name} and start a conversation",
-                                        fontFamily = manrope,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                    item {
+                        if (!uiState.isChatCreated) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 36.dp)
+                            ) {
+                                Text(
+                                    "Say Hey to ${uiState.user?.name} and start a conversation",
+                                    fontFamily = manrope,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
-
-
                     }
 
 
-//                }
+                }
+
                 TextTypeBox(
                     isFocused,
                     onFocusChange = {
@@ -325,15 +321,16 @@ fun ChatScreen(
                     },
                     error = uiState.messageError,
                     Modifier
-                        //.align(Alignment.BottomCenter)
-                        .imePadding()
+                    //.align(Alignment.BottomCenter)
+//                        .imePadding()
                 ) {
                     chatViewModel.sendMessages(otherUserId, text)
                     text = ""
                     chatViewModel.onTypingStopped()
                 }
-
             }
+
+
             if (uiState.messages.isNotEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -383,8 +380,7 @@ fun TextTypeBox(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
-                .onFocusChanged {
-                    focusState ->
+                .onFocusChanged { focusState ->
                     onFocusChange(focusState.isFocused)
                 },
             value = text,
