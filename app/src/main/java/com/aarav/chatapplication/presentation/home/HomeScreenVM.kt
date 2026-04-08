@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.aarav.chatapplication.domain.model.User
 import com.aarav.chatapplication.domain.repository.AuthRepository
 import com.aarav.chatapplication.domain.repository.ChatListRepository
+import com.aarav.chatapplication.domain.repository.GroupChatRepository
+import com.aarav.chatapplication.domain.repository.GroupRepository
 import com.aarav.chatapplication.domain.repository.MessageRepository
 import com.aarav.chatapplication.domain.repository.PresenceRepository
 import com.aarav.chatapplication.domain.repository.UserRepository
-import com.aarav.chatapplication.presentation.model.ChatListItem
+import com.aarav.chatapplication.presentation.model.ChatListEntry
+import com.aarav.chatapplication.presentation.model.DirectChatEntry
+import com.aarav.chatapplication.presentation.model.GroupChatEntry
 import com.aarav.chatapplication.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
@@ -34,15 +38,17 @@ class HomeScreenVM
     val userRepository: UserRepository,
     val chatListRepository: ChatListRepository,
     val authRepository: AuthRepository,
-    val presenceRepository: PresenceRepository
+    val presenceRepository: PresenceRepository,
+    val groupRepository: GroupRepository,
+    val groupChatRepository: GroupChatRepository
 ) : ViewModel() {
     private var _uiState: MutableStateFlow<HomeUiState> = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-        init {
-            getUserList()
-            observeUserPresence()
-        }
+    init {
+        getUserList()
+        observeUserPresence()
+    }
 
     private fun observeUserPresence() {
         viewModelScope.launch {
@@ -60,18 +66,21 @@ class HomeScreenVM
 
     @OptIn(FlowPreview::class)
     fun observeChatList(myId: String) {
-
         viewModelScope.launch {
-
             _uiState.update { it.copy(isLoading = true) }
-
             delay(500)
 
-            Log.i("MYTAG", "my id : " + myId)
+            userRepository.findUserByUserId(myId)
+                .catch { }
+                .collect { user ->
+                    _uiState.update { it.copy(currentUserName = user.name ?: "You") }
+                }
+        }
+
+        viewModelScope.launch {
             chatListRepository.observeUserChats(myId)
                 .timeout(10.seconds)
-                .catch {
-                    e ->
+                .catch { e ->
                     Log.i("CATCH", e.message.toString())
                     _uiState.update {
                         it.copy(
@@ -82,32 +91,22 @@ class HomeScreenVM
                     }
                 }
                 .collect { chatIds ->
-
                     if (chatIds.isEmpty()) {
                         _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                chatList = emptyList()
-                            )
+                            it.copy(isLoading = false, directChats = emptyList())
                         }
                         return@collect
                     }
 
                     val chatFlows = chatIds.map { chatId ->
-
-                        val otherUserId = chatId.split("_")
-                            .first { it != myId }
+                        val otherUserId = chatId.split("_").first { it != myId }
 
                         combine(
                             chatListRepository.observeChatMeta(chatId),
                             chatListRepository.observeUnread(myId, chatId),
-//                            presenceRepository.observePresence(otherUserId),
                             userRepository.findUserByUserId(otherUserId)
-                        ) { meta, unread,
-                            //presence,
-                            user ->
-
-                            ChatListItem(
+                        ) { meta, unread, user ->
+                            DirectChatEntry(
                                 chatId = chatId,
                                 otherUserId = otherUserId,
                                 otherUserName = user.name ?: "",
@@ -115,33 +114,53 @@ class HomeScreenVM
                                 lastTimestamp = meta.second,
                                 unreadCount = unread,
                                 isOnline = false
-                            )
-                                .also {
-                                    markChatDeliveredIfNeeded(
-                                        chatId = chatId,
-                                        myId = myId,
-                                        unreadCount = unread
-                                    )
-                                }
+                            ).also {
+                                markChatDeliveredIfNeeded(chatId, myId, unread)
+                            }
                         }
                     }
 
-
-                    combine(chatFlows) { itemsArray ->
-
-                        Log.i("MYTAG", "final list : " + itemsArray.toString())
-                        itemsArray
-                            .toList()
-                            .sortedByDescending { it.lastTimestamp }
-
-                    }.collect { finalList ->
-
+                    combine(chatFlows) { items ->
+                        items.toList().sortedByDescending { it.lastTimestamp }
+                    }.collect { directList ->
                         _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                chatList = finalList
+                            it.copy(isLoading = false, directChats = directList)
+                        }
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            groupRepository.observeUserGroups(myId)
+                .catch { e -> Log.i("GROUP", "Error: ${e.message}") }
+                .collect { groupIds ->
+                    if (groupIds.isEmpty()) {
+                        _uiState.update { it.copy(groupChats = emptyList()) }
+                        return@collect
+                    }
+
+                    val groupFlows = groupIds.map { groupId ->
+                        combine(
+                            groupRepository.observeGroup(groupId),
+                            groupChatRepository.observeGroupMeta(groupId),
+                            groupChatRepository.observeGroupUnread(myId, groupId)
+                        ) { group, meta, unread ->
+                            GroupChatEntry(
+                                chatId = groupId,
+                                groupName = group.name,
+                                lastSenderName = meta.lastSenderName,
+                                lastMessage = meta.lastMessage,
+                                lastTimestamp = meta.lastTimestamp,
+                                unreadCount = unread,
+                                memberCount = group.members.size
                             )
                         }
+                    }
+
+                    combine(groupFlows) { items ->
+                        items.toList().sortedByDescending { it.lastTimestamp }
+                    }.collect { groupList ->
+                        _uiState.update { it.copy(groupChats = groupList) }
                     }
                 }
         }
@@ -151,9 +170,7 @@ class HomeScreenVM
         when (val result = userRepository.getCurrentUser()) {
             is Result.Success -> {
                 _uiState.update {
-                    it.copy(
-                        userId = result.data
-                    )
+                    it.copy(userId = result.data)
                 }
             }
 
@@ -192,9 +209,7 @@ class HomeScreenVM
                 .collect { user ->
                     _uiState
                         .update {
-                            it.copy(
-                                userList = user
-                            )
+                            it.copy(userList = user)
                         }
                 }
         }
@@ -214,14 +229,18 @@ class HomeScreenVM
             )
         }
     }
-
 }
 
 data class HomeUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val showErrorDialog: Boolean = false,
-    val chatList: List<ChatListItem> = emptyList(),
+    val directChats: List<DirectChatEntry> = emptyList(),
+    val groupChats: List<GroupChatEntry> = emptyList(),
     val userList: List<User> = emptyList(),
-    val userId: String? = null
-)
+    val userId: String? = null,
+    val currentUserName: String = "You"
+) {
+    val chatList: List<ChatListEntry>
+        get() = (directChats + groupChats).sortedByDescending { it.lastTimestamp }
+}

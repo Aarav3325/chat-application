@@ -30,34 +30,18 @@ class ChatViewModel
     val presenceRepository: PresenceRepository
 ) : ViewModel() {
 
-
     private var _uiState: MutableStateFlow<ChatUiState> = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
-
 
     private var currentChatId: String? = null
     private var currentUserId: String? = null
 
-//    init {
-//       // getUserList()
-//        getUser()
-//    }
-
-//    private val _userList: MutableStateFlow<List<User>> = MutableStateFlow(emptyList())
-//    val userList: StateFlow<List<User>> = _userList.asStateFlow()
-
     fun observePresence(otherUserId: String) {
-        Log.i("MYTAG", otherUserId)
-
         viewModelScope.launch {
             presenceRepository.observePresence(otherUserId)
                 .collect { presence ->
                     _uiState.update {
-                        Log.i("PRESENCE", "PRESENCE"+ presence.online.toString())
-
-                        it.copy(
-                            presence = presence
-                        )
+                        it.copy(presence = presence)
                     }
                 }
         }
@@ -91,7 +75,6 @@ class ChatViewModel
     }
 
     fun onTypingStopped() {
-
         val chatId = currentChatId ?: return
         val myId = currentUserId ?: return
 
@@ -118,12 +101,8 @@ class ChatViewModel
                 }
                 .collect { messageList ->
                     _uiState.update {
-                        it.copy(
-                            messages = messageList
-                        )
+                        it.copy(messages = messageList)
                     }
-
-//                    autoMarkDelivered(messageList)
                     autoMarksRead(messageList)
                 }
         }
@@ -135,33 +114,22 @@ class ChatViewModel
 
         if (text.isBlank()) {
             _uiState.update {
-                it.copy(
-                    messageError = "Message cannot be blank"
-                )
+                it.copy(messageError = "Message cannot be blank")
             }
             return
         }
 
         viewModelScope.launch {
-            _uiState
-                .update {
-                    it.copy(
-                        isSending = true
-                    )
-                }
+            _uiState.update {
+                it.copy(isSending = true)
+            }
 
             when (val result = messageRepository.sendMessage(
-                chatId,
-                senderId,
-                receiverId,
-                text
-            )
-            ) {
+                chatId, senderId, receiverId, text
+            )) {
                 is Result.Success -> {
                     _uiState.update {
-                        it.copy(
-                            isSending = false,
-                        )
+                        it.copy(isSending = false)
                     }
                 }
 
@@ -178,25 +146,6 @@ class ChatViewModel
         }
     }
 
-//    private fun autoMarkDelivered(messages: List<Message>) {
-//        val chatId = currentChatId ?: return
-//        val myId = currentUserId ?: return
-//
-//        viewModelScope.launch {
-//            val pending = messages.filter {
-//                it.status == MessageStatus.SENT.name
-//                        && it.senderId != myId
-//            }
-//
-//            if (pending.isNotEmpty()) {
-//                messageRepository.makeMessageDelivered(
-//                    chatId,
-//                    pending.map { it.messageId }
-//                )
-//            }
-//        }
-//    }
-
     fun autoMarksRead(messages: List<Message>) {
         val chatId = currentChatId ?: return
         val myId = currentUserId ?: return
@@ -208,13 +157,11 @@ class ChatViewModel
             }
 
             if (unread.isNotEmpty()) {
-                Log.i("MESSAGE", unread.size.toString())
                 messageRepository.makeMessageRead(
                     chatId,
                     myId,
                     unread.map { it.messageId }
                 )
-                Log.i("MESSAGE", "MARKED SEEN")
             }
         }
     }
@@ -228,27 +175,12 @@ class ChatViewModel
         }
     }
 
-
-//    fun getUserList() {
-//        viewModelScope.launch {
-//            userRepository.getUserList()
-//                .catch { e ->
-//                    Log.i("MYTAG", e.message.toString())
-//                }
-//                .collect { user ->
-//                    _userList.value = user
-//                }
-//        }
-//    }
-
     fun getUser(userId: String) {
         viewModelScope.launch {
             userRepository.findUserByUserId(userId)
                 .collect { user ->
                     _uiState.update {
-                        it.copy(
-                            user = user
-                        )
+                        it.copy(user = user)
                     }
                 }
         }
@@ -259,23 +191,11 @@ class ChatViewModel
             messageRepository.isChatCreated(chatId, userId)
                 .collect {
                     _uiState.update { state ->
-                        state.copy(
-                            isChatCreated = it
-                        )
+                        state.copy(isChatCreated = it)
                     }
                 }
         }
     }
-
-//    override fun onCleared() {
-//        super.onCleared()
-//
-//        if(currentChatId != null && currentUserId != null) {
-//            viewModelScope.launch {
-//                typingRepository.clearTyping(currentChatId.toString(), currentUserId.toString())
-//            }
-//        }
-//    }
 }
 
 data class ChatUiState(

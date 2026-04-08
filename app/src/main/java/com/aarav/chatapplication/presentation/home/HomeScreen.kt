@@ -53,15 +53,17 @@ import com.aarav.chatapplication.presentation.chat.formatTimestamp
 import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
 import com.aarav.chatapplication.presentation.components.CustomBottomSheet
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
-import com.aarav.chatapplication.presentation.model.ChatListItem
+import com.aarav.chatapplication.presentation.model.DirectChatEntry
+import com.aarav.chatapplication.presentation.model.GroupChatEntry
 import com.aarav.chatapplication.ui.theme.manrope
 import com.posthog.PostHog
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Preview(showBackground = true)
 @Composable
 fun HomeScreen(
     navigateToChat: (String, String) -> Unit,
+    navigateToGroupChat: (String, String, String) -> Unit,
+    navigateToCreateGroup: (String) -> Unit,
     onLogout: () -> Unit,
     homeScreenVM: HomeScreenVM
 ) {
@@ -92,7 +94,7 @@ fun HomeScreen(
 
 
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false
+        skipPartiallyExpanded = true
     )
 
     LaunchedEffect(uiState.userId) {
@@ -107,6 +109,73 @@ fun HomeScreen(
             },
             title = "Create New Chat"
         ) {
+            Card(
+                onClick = {
+                    showCreateChatModal = false
+                    uiState.userId?.let { userId ->
+                        navigateToCreateGroup(userId)
+                    }
+                },
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(48.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = painterResource(R.drawable.create_chat),
+                                contentDescription = "create group",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier.padding(start = 16.dp)
+                    ) {
+                        Text(
+                            "New Group",
+                            fontFamily = manrope,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            "Create a group chat with multiple people",
+                            fontFamily = manrope,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                "Direct Message",
+                fontFamily = manrope,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+            )
+
             CreateChatModalSheet(
                 uiState.userList,
                 onDismiss = { showCreateChatModal = false }) { receiverId ->
@@ -196,12 +265,26 @@ fun HomeScreen(
                     }
                 }
 
-                items(uiState.chatList) { item ->
-                    ChatItem(
-                        item
-                    ) {
-                        uiState.userId?.let { userId ->
-                            navigateToChat(item.otherUserId, userId)
+                items(uiState.chatList) { entry ->
+                    when (entry) {
+                        is DirectChatEntry -> {
+                            DirectChatItem(entry) {
+                                uiState.userId?.let { userId ->
+                                    navigateToChat(entry.otherUserId, userId)
+                                }
+                            }
+                        }
+
+                        is GroupChatEntry -> {
+                            GroupChatItem(entry) {
+                                uiState.userId?.let { userId ->
+                                    navigateToGroupChat(
+                                        entry.chatId,
+                                        userId,
+                                        uiState.currentUserName
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -210,49 +293,9 @@ fun HomeScreen(
     }
 }
 
-val chatList = listOf(
-    User(
-        Color(0xFF009BE4),
-        "Rahul",
-        "Hey, what's up?",
-        "4 min",
-        2,
-    ),
-    User(
-        Color(0xFFE8DA5A),
-        "Ram",
-        "That sounds cool. What...",
-        "12 min",
-        1,
-    ),
-    User(
-        Color(0xFF00DDC5),
-        "Hasti",
-        "I like to do a lot of different...",
-        "39 min",
-        5,
-    ),
-    User(
-        Color(0xFF009BE4),
-        "Simran",
-        "That's awesome.",
-        "45 min",
-        4,
-    ),
-)
-
-data class User(
-    val color: Color,
-    val name: String,
-    val message: String,
-    val relativeTime: String,
-    val unread: Int,
-)
-
-@Preview(showBackground = true)
 @Composable
-fun ChatItem(
-    chatListItem: ChatListItem,
+fun DirectChatItem(
+    entry: DirectChatEntry,
     onClick: () -> Unit
 ) {
     Card(
@@ -297,13 +340,13 @@ fun ChatItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        chatListItem.otherUserName,
+                        entry.otherUserName,
                         fontFamily = manrope,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    if (chatListItem.isOnline) {
+                    if (entry.isOnline) {
                         Spacer(Modifier.width(12.dp))
 
                         Surface(
@@ -325,7 +368,7 @@ fun ChatItem(
                 }
 
                 Text(
-                    chatListItem.lastMessage,
+                    entry.lastMessage,
                     fontFamily = manrope,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -341,14 +384,14 @@ fun ChatItem(
                 modifier = Modifier.padding(start = 16.dp)
             ) {
                 Text(
-                    formatTimestamp(chatListItem.lastTimestamp),
+                    formatTimestamp(entry.lastTimestamp),
                     fontFamily = manrope,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                if (chatListItem.unreadCount > 0) {
+                if (entry.unreadCount > 0) {
                     Surface(
                         shape = CircleShape,
                         modifier = Modifier.size(22.dp),
@@ -358,7 +401,135 @@ fun ChatItem(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                chatListItem.unreadCount.toString(),
+                                entry.unreadCount.toString(),
+                                fontFamily = manrope,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GroupChatItem(
+    entry: GroupChatEntry,
+    onClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable {
+                onClick()
+            },
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(67.dp),
+                shape = CircleShape,
+                color = Color(0xFF6C63FF),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.user),
+                    contentDescription = "group avatar",
+                    modifier = Modifier
+                        .size(36.dp)
+                        .padding(8.dp)
+                )
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .weight(1f)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        entry.groupName,
+                        fontFamily = manrope,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                    ) {
+                        Text(
+                            "Group",
+                            fontFamily = manrope,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                val displayMessage = if (entry.lastSenderName.isNotEmpty() && entry.lastMessage.isNotEmpty()) {
+                    "${entry.lastSenderName}: ${entry.lastMessage}"
+                } else if (entry.lastMessage.isNotEmpty()) {
+                    entry.lastMessage
+                } else {
+                    "No messages yet"
+                }
+
+                Text(
+                    displayMessage,
+                    fontFamily = manrope,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(start = 16.dp)
+            ) {
+                if (entry.lastTimestamp > 0) {
+                    Text(
+                        formatTimestamp(entry.lastTimestamp),
+                        fontFamily = manrope,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                if (entry.unreadCount > 0) {
+                    Surface(
+                        shape = CircleShape,
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                entry.unreadCount.toString(),
                                 fontFamily = manrope,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onPrimary,

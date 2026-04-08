@@ -21,4 +21,28 @@ object FirebasePaths {
 
     fun userChats(userId: String) =
         "user_chats/$userId"
+
+    fun group(groupId: String) =
+        "groups/$groupId"
+
+    fun groupMembers(groupId: String) =
+        "groups/$groupId/members"
+
+    fun groupMessages(groupId: String) =
+        "group_messages/$groupId"
+
+    fun groupMessage(groupId: String, messageId: String) =
+        "group_messages/$groupId/$messageId"
+
+    fun groupMeta(groupId: String) =
+        "group_meta/$groupId"
+
+    fun userGroups(userId: String) =
+        "user_groups/$userId"
+
+    fun groupUnread(userId: String, groupId: String) =
+        "group_unread/$userId/$groupId"
+
+    fun groupTyping(groupId: String, userId: String) =
+        "group_typing/$groupId/$userId"
 }

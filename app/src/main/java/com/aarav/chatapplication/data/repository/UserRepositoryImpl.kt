@@ -1,6 +1,5 @@
 package com.aarav.chatapplication.data.repository
 
-import android.util.Log
 import com.aarav.chatapplication.domain.model.User
 import com.aarav.chatapplication.domain.repository.UserRepository
 import com.aarav.chatapplication.utils.Result
@@ -30,7 +29,6 @@ class UserRepositoryImpl @Inject constructor(
                 .setValue(user)
                 .await()
 
-            Log.i("USER", "Successfully saved user data for ${user.uid}")
             Result.Success(Unit)
         } catch (e: IOException) {
             Result.Error(e.message ?: "Failed to store user data")
@@ -57,7 +55,6 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-
     override fun getUserList(): Flow<List<User>> = callbackFlow {
         val currentUserId = firebaseAuth.currentUser?.uid
 
@@ -68,7 +65,6 @@ class UserRepositoryImpl @Inject constructor(
         }
 
         val listener = object : ValueEventListener {
-
             override fun onDataChange(snapshot: DataSnapshot) {
                 val users = snapshot.children
                     .mapNotNull { it.getValue(User::class.java) }
@@ -86,24 +82,6 @@ class UserRepositoryImpl @Inject constructor(
         awaitClose { userReference.removeEventListener(listener) }
     }
 
-
-//    override suspend fun findUserByUserId(userIds: List<String>): Result<User?> {
-//        return try {
-//            val snapshot = userReference.child(userId).get().await()
-//            val user = snapshot.getValue(User::class.java)
-//
-//            if (user != null) {
-//                Log.i("USER", user.name ?: "No Name")
-//                Result.Success(user)
-//            } else {
-//                Result.Error("User Not Found")
-//            }
-//
-//        } catch (e: Exception) {
-//            Result.Error(e.message ?: "Unknown Error")
-//        }
-//    }
-
     override fun findUserByUserId(userId: String): Flow<User> =
         callbackFlow {
             val snapshot = userReference.child(userId)
@@ -114,6 +92,6 @@ class UserRepositoryImpl @Inject constructor(
                 trySend(it)
             }
 
-            awaitClose {  }
+            awaitClose { }
         }
 }

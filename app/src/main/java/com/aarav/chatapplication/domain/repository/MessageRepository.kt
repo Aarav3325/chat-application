@@ -14,11 +14,6 @@ interface MessageRepository {
 
     fun listenMessages(chatId: String): Flow<List<Message>>
 
-//    suspend fun makeMessageDelivered(
-//        chatId: String,
-//        messageIds: List<String>
-//    )
-
     suspend fun makeMessageRead(
         chatId: String,
         userId: String,

@@ -1,6 +1,5 @@
 package com.aarav.chatapplication.data.repository
 
-import android.util.Log
 import com.aarav.chatapplication.data.remote.FirebasePaths
 import com.aarav.chatapplication.domain.repository.ChatListRepository
 import com.google.firebase.database.DataSnapshot
@@ -19,22 +18,16 @@ class ChatListRepositoryImpl
 
     val rootRef = firebaseDatabase.reference
 
-    // Retrieve chat list
     override fun observeUserChats(userId: String): Flow<List<String>> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.userChats(userId))
 
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val chatIds = snapshot.children.mapNotNull {
-                    it.key
-                }
-
-                Log.i("CHAT", "repo cahtIds: " + chatIds.toString())
+                val chatIds = snapshot.children.mapNotNull { it.key }
                 trySend(chatIds)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.i("CATCH", "error :" + error.message)
                 close(error.toException())
             }
         }
@@ -43,7 +36,6 @@ class ChatListRepositoryImpl
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    // retrieve last message in chat particular chat along with timestamp
     override fun observeChatMeta(chatId: String): Flow<Pair<String, Long>> = callbackFlow {
         val ref = rootRef.child(FirebasePaths.chatMeta(chatId))
 
@@ -51,7 +43,6 @@ class ChatListRepositoryImpl
             override fun onDataChange(snapshot: DataSnapshot) {
                 val lastMessage = snapshot.child("lastMessage").getValue(String::class.java) ?: ""
                 val lastTimestamp = snapshot.child("lastTimestamp").getValue(Long::class.java) ?: 0L
-
                 trySend(lastMessage to lastTimestamp)
             }
 
@@ -64,7 +55,6 @@ class ChatListRepositoryImpl
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    // retrieve unread count for the chatId
     override fun observeUnread(
         userId: String,
         chatId: String
@@ -73,9 +63,6 @@ class ChatListRepositoryImpl
 
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-//                Log.i("UNREAD", snapshot.getValue(Int::class.java).toString())
-//                val unread = snapshot.getValue<Int>(Int::class.java) ?: 0
-//                trySend(unread)
                 val unread = (snapshot.value as? Long)?.toInt() ?: 0
                 trySend(unread)
             }

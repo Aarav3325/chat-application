@@ -1,4 +1,4 @@
-package com.aarav.chatapplication.presentation.chat
+package com.aarav.chatapplication.presentation.group
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -27,15 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,34 +42,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
-import com.aarav.chatapplication.data.model.Message
+import com.aarav.chatapplication.data.model.GroupMessage
+import com.aarav.chatapplication.presentation.chat.TextTypeBox
+import com.aarav.chatapplication.presentation.chat.buildRelativeTime
+import com.aarav.chatapplication.presentation.chat.formatTimestamp
+import com.aarav.chatapplication.presentation.chat.isKeyboardOpen
 import com.aarav.chatapplication.presentation.components.MessageStatusIcon
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
-import com.aarav.chatapplication.presentation.home.ChatViewModel
 import com.aarav.chatapplication.ui.theme.manrope
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ChatScreen(
-    chatId: String,
+fun GroupChatScreen(
+    groupId: String,
     myId: String,
-    otherUserId: String,
+    senderName: String,
     back: () -> Unit,
-    chatViewModel: ChatViewModel
+    viewModel: GroupChatViewModel
 ) {
-
-    val uiState by chatViewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     var text by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -81,39 +74,42 @@ fun ChatScreen(
     val isKeyboardOpen = isKeyboardOpen()
 
     LaunchedEffect(Unit) {
-        chatViewModel.observeMessages(chatId, myId)
-        chatViewModel.observePresence(otherUserId)
-        chatViewModel.getUser(otherUserId)
-        chatViewModel.isChatCreated(chatId, myId)
+        viewModel.setSenderName(senderName)
+        viewModel.observeGroup(groupId)
+        viewModel.observeMessages(groupId, myId)
     }
 
     LaunchedEffect(isKeyboardOpen) {
-        if (isKeyboardOpen) {
+        if (isKeyboardOpen && uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.lastIndex)
+        }
+    }
+
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.lastIndex)
         }
     }
 
     MyAlertDialog(
         shouldShowDialog = uiState.showErrorDialog,
-        onDismissRequest = { chatViewModel.clearError() },
+        onDismissRequest = { viewModel.clearError() },
         title = "Error",
         message = uiState.error ?: "Something went wrong",
-        confirmButtonText = "Dismiss",
+        confirmButtonText = "Dismiss"
     ) {
-        chatViewModel.clearError()
+        viewModel.clearError()
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-    ) {
-
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                .padding(it)
+                .padding(paddingValues)
                 .fillMaxSize()
         ) {
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -121,8 +117,8 @@ fun ChatScreen(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(top = 0.dp)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(top = 0.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
@@ -135,7 +131,7 @@ fun ChatScreen(
                                 .clip(CircleShape)
                                 .clickable {
                                     back()
-                                    chatViewModel.onTypingStopped()
+                                    viewModel.onTypingStopped()
                                 }
                         ) {
                             Icon(
@@ -152,11 +148,11 @@ fun ChatScreen(
                         Surface(
                             modifier = Modifier.size(48.dp),
                             shape = CircleShape,
-                            color = Color(0xFF00DDC5),
+                            color = Color(0xFF6C63FF)
                         ) {
                             Image(
                                 painter = painterResource(R.drawable.user),
-                                contentDescription = "avatar",
+                                contentDescription = "group avatar",
                                 modifier = Modifier
                                     .size(36.dp)
                                     .padding(8.dp)
@@ -170,7 +166,7 @@ fun ChatScreen(
                                 .weight(1f)
                         ) {
                             Text(
-                                uiState.user?.name ?: "",
+                                uiState.group?.name ?: "",
                                 fontFamily = manrope,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
@@ -181,43 +177,23 @@ fun ChatScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                if (uiState.isOtherUserTyping) {
+                                if (uiState.typingUserIds.isNotEmpty()) {
                                     Text(
-                                        "typing...",
+                                        "someone is typing...",
                                         fontFamily = manrope,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.secondary
                                     )
                                 } else {
-                                    when {
-                                        uiState.presence == null -> ""
-                                        uiState.presence!!.online -> {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = Color(0xFF00FF85),
-                                                modifier = Modifier.size(8.dp)
-                                            ) { }
-
-                                            Text(
-                                                "Online",
-                                                fontFamily = manrope,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF00FF85)
-                                            )
-                                        }
-
-                                        !uiState.presence!!.online -> {
-                                            Text(
-                                                "last active at ${formatTimestamp(uiState.presence!!.lastSeen)}",
-                                                fontFamily = manrope,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.tertiary
-                                            )
-                                        }
-                                    }
+                                    val memberCount = uiState.group?.members?.size ?: 0
+                                    Text(
+                                        "$memberCount members",
+                                        fontFamily = manrope,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
                                 }
                             }
                         }
@@ -231,13 +207,13 @@ fun ChatScreen(
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         .weight(1f)
                 ) {
-                    items(uiState.messages) { chat ->
-                        val isMine = chat.senderId == myId
-                        ChatCard(chat, isMine)
+                    items(uiState.messages) { message ->
+                        val isMine = message.senderId == myId
+                        GroupChatCard(message, isMine)
                     }
 
                     item {
-                        if (!uiState.isChatCreated) {
+                        if (uiState.messages.isEmpty()) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
@@ -245,7 +221,7 @@ fun ChatScreen(
                                     .padding(horizontal = 24.dp, vertical = 36.dp)
                             ) {
                                 Text(
-                                    "Say Hey to ${uiState.user?.name} and start a conversation",
+                                    "Start a conversation in ${uiState.group?.name ?: "this group"}",
                                     fontFamily = manrope,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -257,18 +233,18 @@ fun ChatScreen(
                 }
 
                 TextTypeBox(
-                    isFocused,
+                    isFocused = isFocused,
                     onFocusChange = { isFocused = it },
-                    text,
+                    text = text,
                     onValueChange = { text = it },
-                    onStartTyping = { chatViewModel.onTypingStarted() },
-                    onStopTyping = { chatViewModel.onTypingStopped() },
+                    onStartTyping = { viewModel.onTypingStarted() },
+                    onStopTyping = { viewModel.onTypingStopped() },
                     error = uiState.messageError,
-                    Modifier
+                    modifier = Modifier
                 ) {
-                    chatViewModel.sendMessages(otherUserId, text)
+                    viewModel.sendMessage(text)
                     text = ""
-                    chatViewModel.onTypingStopped()
+                    viewModel.onTypingStopped()
                 }
             }
 
@@ -295,101 +271,18 @@ fun ChatScreen(
 }
 
 @Composable
-fun TextTypeBox(
-    isFocused: Boolean,
-    onFocusChange: (Boolean) -> Unit,
-    text: String,
-    onValueChange: (String) -> Unit,
-    onStartTyping: () -> Unit,
-    onStopTyping: () -> Unit,
-    error: String?,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-    ) {
-        TextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .onFocusChanged { focusState ->
-                    onFocusChange(focusState.isFocused)
-                },
-            value = text,
-            onValueChange = {
-                onValueChange(it)
-                if (it.isNotBlank()) {
-                    onStartTyping()
-                } else {
-                    onStopTyping()
-                }
-            },
-            shape = RoundedCornerShape(24.dp),
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer
-            ),
-            placeholder = {
-                if (error == null) {
-                    Text(
-                        "Type here...",
-                        fontFamily = manrope,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                } else {
-                    Text(
-                        error,
-                        fontFamily = manrope,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            },
-            trailingIcon = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(end = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    VerticalDivider(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(28.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(R.drawable.send),
-                        contentDescription = "send",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onClick() }
-                    )
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun ChatCard(
-    message: Message,
+fun GroupChatCard(
+    message: GroupMessage,
     isMine: Boolean
 ) {
-    val bg =
-        if (isMine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
-    val content =
-        if (isMine) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+    val bg = if (isMine) MaterialTheme.colorScheme.primaryContainer
+             else MaterialTheme.colorScheme.secondaryContainer
+    val content = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+                  else MaterialTheme.colorScheme.onSecondaryContainer
     val alignment = if (isMine) Alignment.End else Alignment.Start
 
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             horizontalAlignment = alignment,
@@ -403,20 +296,27 @@ fun ChatCard(
             ) {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = bg
-                    ),
-                    modifier = Modifier,
+                    colors = CardDefaults.cardColors(containerColor = bg)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
+                        if (!isMine) {
+                            Text(
+                                message.senderName,
+                                fontFamily = manrope,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
+
                         Text(
                             message.text,
                             fontFamily = manrope,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W700,
-                            modifier = Modifier,
                             color = content
                         )
                     }
@@ -431,59 +331,17 @@ fun ChatCard(
                     fontFamily = manrope,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.W700,
-                    modifier = Modifier,
                     color = content
                 )
 
                 Spacer(Modifier.width(4.dp))
 
-                Surface(
-                    color = Color.Transparent,
-                    modifier = Modifier
-                ) {
-                    if (isMine) {
+                if (isMine) {
+                    Surface(color = Color.Transparent) {
                         MessageStatusIcon(message.status)
                     }
                 }
             }
         }
     }
-}
-
-fun formatTimestamp(timestamp: Long): String {
-    val df = SimpleDateFormat("HH:mm", Locale.getDefault())
-    return df.format(Date(timestamp))
-}
-
-fun formatDateWise(timestamp: Long): String {
-    val df = SimpleDateFormat("dd MMM YYYY", Locale.getDefault())
-    return df.format(Date(timestamp))
-}
-
-fun buildRelativeTime(timestamp: Long): String {
-    val nowCal = Calendar.getInstance()
-    val msgCal = Calendar.getInstance().apply {
-        timeInMillis = timestamp
-    }
-
-    val nowDay = nowCal.get(Calendar.YEAR) * 1000 +
-            nowCal.get(Calendar.DAY_OF_YEAR)
-
-    val msgDay = msgCal.get(Calendar.YEAR) * 1000 +
-            msgCal.get(Calendar.DAY_OF_YEAR)
-
-    val diffDays = nowDay - msgDay
-
-    return when (diffDays) {
-        0 -> "Today"
-        1 -> "Yesterday"
-        else -> formatDateWise(timestamp)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun isKeyboardOpen(): Boolean {
-    val imeInsets = WindowInsets.isImeVisible
-    return imeInsets
 }

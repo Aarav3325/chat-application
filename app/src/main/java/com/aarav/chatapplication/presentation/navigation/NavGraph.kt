@@ -14,6 +14,8 @@ import androidx.navigation.navArgument
 import com.aarav.chatapplication.presentation.auth.AuthScreen
 import com.aarav.chatapplication.presentation.chat.ChatScreen
 import com.aarav.chatapplication.domain.repository.AuthRepository
+import com.aarav.chatapplication.presentation.group.CreateGroupScreen
+import com.aarav.chatapplication.presentation.group.GroupChatScreen
 import com.aarav.chatapplication.presentation.home.HomeScreen
 import com.aarav.chatapplication.presentation.profile.ProfileScreen
 import com.aarav.chatapplication.utils.generateChatId
@@ -34,6 +36,8 @@ fun NavGraph(
     ) {
         addHomeScreen(navHostController, this)
         addChatScreen(navHostController, this, userId ?: "")
+        addGroupChatScreen(navHostController, this)
+        addCreateGroupScreen(navHostController, this)
         addAuthScreen(navHostController, this)
         addProfileScreen(navHostController, this)
     }
@@ -44,12 +48,17 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
         route = NavRoute.Home.path,
     ) {
 
-
         HomeScreen(
             navigateToChat = {
                 receiverId, userId ->
 
                 navController.navigate(NavRoute.Chat.createRoute(receiverId, userId))
+            },
+            navigateToGroupChat = { groupId, userId, senderName ->
+                navController.navigate(NavRoute.GroupChat.createRoute(groupId, userId, senderName))
+            },
+            navigateToCreateGroup = { userId ->
+                navController.navigate(NavRoute.CreateGroup.createRoute(userId))
             },
             onLogout = {
                 navController.navigate(NavRoute.Auth.path) {
@@ -102,16 +111,6 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
         Log.i("MYTAG", "rec: " + receiverId)
         Log.i("MYTAG", "my: " + userId)
 
-//        ChatScreen(
-//            back = {
-//                navController.popBackStack()
-//            },
-//            chatId = "test_lkwcgdykDwa8F7lgtYcmLo01tO83_070379f1-2065-4ef3-ad5f-0e0c34e611d9",
-//            myId = "lkwcgdykDwa8F7lgtYcmLo01tO83",
-//            otherUserId = "070379f1-2065-4ef3-ad5f-0e0c34e611d9",
-//            chatViewModel = hiltViewModel()
-//        )
-
         val chatId = generateChatId(userId, receiverId)
 
         Log.i("MYTAG", "chat: " + chatId)
@@ -127,3 +126,50 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
         )
     }
 }
+
+fun addGroupChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+    navGraphBuilder.composable(
+        route = NavRoute.GroupChat.path.plus("/{groupId}/{userId}/{senderName}"),
+        arguments = listOf(
+            navArgument("groupId") { type = NavType.StringType },
+            navArgument("userId") { type = NavType.StringType },
+            navArgument("senderName") { type = NavType.StringType }
+        )
+    ) {
+        val groupId = it.arguments?.getString("groupId").toString()
+        val userId = it.arguments?.getString("userId").toString()
+        val senderName = it.arguments?.getString("senderName").toString()
+
+        GroupChatScreen(
+            groupId = groupId,
+            myId = userId,
+            senderName = senderName,
+            back = { navController.popBackStack() },
+            viewModel = hiltViewModel()
+        )
+    }
+}
+
+fun addCreateGroupScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+    navGraphBuilder.composable(
+        route = NavRoute.CreateGroup.path.plus("/{userId}"),
+        arguments = listOf(
+            navArgument("userId") { type = NavType.StringType }
+        )
+    ) {
+        val userId = it.arguments?.getString("userId").toString()
+
+        CreateGroupScreen(
+            userId = userId,
+            onGroupCreated = { groupId ->
+                navController.navigate(
+                    NavRoute.GroupChat.createRoute(groupId, userId, "You")
+                ) {
+                    popUpTo(NavRoute.Home.path)
+                }
+            },
+            onBack = { navController.popBackStack() },
+            viewModel = hiltViewModel()
+        )
+    }
+}

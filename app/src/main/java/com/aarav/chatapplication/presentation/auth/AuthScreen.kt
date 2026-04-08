@@ -1,7 +1,6 @@
 package com.aarav.chatapplication.presentation.auth
 
 import android.app.Activity
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,22 +57,16 @@ fun AuthScreen(
     val context = LocalContext.current
     val activity = context as? Activity
 
-
-    var show by remember {
-        mutableStateOf(false)
-    }
+    var show by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isCodeSent) {
-        Log.i("AUTH", "code sent: ${uiState.isCodeSent}")
-        if(uiState.isCodeSent) {
-            Log.i("AUTH", "Code sent for ${uiState.phone}")
-        }
+        if (uiState.isCodeSent) { }
     }
 
     MyAlertDialog(
         shouldShowDialog = uiState.showErrorDialog,
         onDismissRequest = { viewModel.clearError() },
-        title = when(uiState.errorType) {
+        title = when (uiState.errorType) {
             AuthError.invalidInput -> "Invalid Input"
             AuthError.invalidOTP -> "Invalid OTP"
             else -> "Error"
@@ -84,181 +77,141 @@ fun AuthScreen(
         viewModel.clearError()
     }
 
-        if(!uiState.isCodeSent) {
-            Column(
+    if (!uiState.isCodeSent) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Text(
+                text = "ChatApp",
+                fontSize = 36.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = manrope,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Stay synced with your circle with online chatting",
+                fontSize = 20.sp,
+                fontFamily = manrope,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            Text(
+                text = "We will send you an OTP to verify your phone number. Enter your phone number ",
+                fontSize = 16.sp,
+                fontFamily = manrope,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = uiState.phone,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                Text(
-                    text = "ChatApp",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = manrope,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Stay synced with your circle with online chatting",
-                    fontSize = 20.sp,
-                    fontFamily = manrope,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
-
-
-                Spacer(modifier = Modifier.height(36.dp))
-
-                Text(
-                    text = "We will send you an OTP to verify your phone number. Enter your phone number ",
-                    fontSize = 16.sp,
-                    fontFamily = manrope,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = uiState.phone,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    onValueChange = {
-                            input ->
-                        val digitsOnly = input.filter { it.isDigit() }
-
-                        if (digitsOnly.length <= 10) {
-                            viewModel.updatePhone(digitsOnly)
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
-                    leadingIcon = {
-                        Image(
-                            painter = painterResource(R.drawable.phone),
-                            contentDescription = "phone",
-                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.tertiary),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    maxLines = 1,
-                    shape = RoundedCornerShape(14.dp),
-                    placeholder = {
-                        Text(
-                            "Enter phone number",
-                            fontFamily = manrope
-                        )
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = Color.DarkGray,
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    ),
-                    isError = uiState.phoneError != null,
-                    supportingText = {
-                        uiState.phoneError?.let {
-                            Text(
-                                it,
-                                fontFamily = manrope,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
+                onValueChange = { input ->
+                    val digitsOnly = input.filter { it.isDigit() }
+                    if (digitsOnly.length <= 10) {
+                        viewModel.updatePhone(digitsOnly)
                     }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-
-                Button(
-                    onClick = {
-                        show = true
-                        val finalPhone = "+91${uiState.phone}"
-                        activity?.let {
-                            viewModel.sendOtp(finalPhone, it)
-                        }
-//                        if(uiState.isInputValid) {
-//                            val finalPhone = "+91${uiState.phone}"
-//                            activity?.let {
-//                                viewModel.sendOtp(finalPhone, it)
-//                            }
-//                        }
-//                        else {
-//                            viewModel.validateBeforeNext()
-//                        }
-                    },
-                    modifier = Modifier
-                        .height(48.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = Color(0xFFFFC9D2),
-                        disabledContentColor = Color.White.copy(alpha = 0.6f)
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = {
+                    Image(
+                        painter = painterResource(R.drawable.phone),
+                        contentDescription = "phone",
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.tertiary),
+                        modifier = Modifier.size(24.dp)
                     )
-                ) {
-                    Text(
-                        text = "Next",
-                        fontFamily = manrope,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
+                },
+                maxLines = 1,
+                shape = RoundedCornerShape(14.dp),
+                placeholder = {
+                    Text("Enter phone number", fontFamily = manrope)
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = Color.DarkGray,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                ),
+                isError = uiState.phoneError != null,
+                supportingText = {
+                    uiState.phoneError?.let {
+                        Text(
+                            it,
+                            fontFamily = manrope,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
+            )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    show = true
+                    val finalPhone = "+91${uiState.phone}"
+                    activity?.let {
+                        viewModel.sendOtp(finalPhone, it)
+                    }
+                },
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = Color(0xFFFFC9D2),
+                    disabledContentColor = Color.White.copy(alpha = 0.6f)
+                )
+            ) {
+                Text(
+                    text = "Next",
+                    fontFamily = manrope,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
             }
         }
-        else{
-            OPTScreen(uiState, viewModel, navigateToHome)
-        }
-
-
-        if(uiState.isLoading) {
-            Dialog(onDismissRequest = {}, content = {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
-                        .height(100.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-                    ) {
-                        ContainedLoadingIndicator()
-                    }
-                }
-            })
-        }
-
+    } else {
+        OPTScreen(uiState, viewModel, navigateToHome)
     }
 
-/*  Dialog(onDismissRequest = {}, content = {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
-                        .height(100.dp)
+    if (uiState.isLoading) {
+        Dialog(onDismissRequest = {}, content = {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .height(100.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-                    ) {
-                        ContainedLoadingIndicator()
-                    }
+                    ContainedLoadingIndicator()
                 }
-            })
-
- */
+            }
+        })
+    }
+}

@@ -1,6 +1,5 @@
 package com.aarav.chatapplication.presentation.auth
 
-import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,23 +34,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.ui.theme.manrope
 import kotlinx.coroutines.delay
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.type
-import com.aarav.chatapplication.presentation.components.MyAlertDialog
 
-
-@Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OPTScreen(
@@ -60,109 +54,90 @@ fun OPTScreen(
     viewModel: AuthViewModel,
     navigateToHome: () -> Unit
 ) {
-        var timeLeft by remember { mutableIntStateOf(60) }
-
-        LaunchedEffect(Unit) {
-            while (timeLeft > 0) {
-                delay(1000L)
-                timeLeft--
-            }
-        }
+    var timeLeft by remember { mutableIntStateOf(60) }
 
     LaunchedEffect(Unit) {
-        Log.e("OTP", "OTP SCREEN COMPOSED")
+        while (timeLeft > 0) {
+            delay(1000L)
+            timeLeft--
+        }
     }
 
     LaunchedEffect(uiState.isVerified) {
-        if(uiState.isVerified) {
+        if (uiState.isVerified) {
             navigateToHome()
         }
     }
 
-
-
     var otp by remember { mutableStateOf("") }
 
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 72.dp)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 72.dp)
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
 
-            Text(
-                text = "Enter the 6-digit verification code (OTP) sent to your phone number",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontFamily = manrope,
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
+        Text(
+            text = "Enter the 6-digit verification code (OTP) sent to your phone number",
+            color = MaterialTheme.colorScheme.onBackground,
+            fontFamily = manrope,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = "+91 ${uiState.phone}",
+            color = MaterialTheme.colorScheme.primary,
+            fontSize = 16.sp,
+            fontFamily = manrope,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        OtpInput(
+            otp = otp,
+            onOtpChange = { if (it.length <= 6) otp = it }
+        )
+
+        Spacer(Modifier.height(54.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            FilledTonalButton(
+                onClick = {
+                    uiState.verificationId?.let {
+                        viewModel.verifyOtp(it, otp)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Text("Continue", fontWeight = FontWeight.Bold)
+            }
 
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "+91 ${uiState.phone}",
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 16.sp,
-                fontFamily = manrope,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                text = "Expires in $timeLeft seconds",
+                color = Color.Gray,
+                fontSize = 14.sp,
             )
-
-            Spacer(Modifier.height(24.dp))
-//            OtpInputField(
-//                otp = otp,
-//                onOtpChange = { otp = it }
-//            )
-
-
-            OtpInput(
-                otp = otp,
-                onOtpChange = { if (it.length <= 6) otp = it }
-            )
-
-            Spacer(Modifier.height(54.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                FilledTonalButton(
-                    onClick = {
-                        // onContinueClick()
-                        Log.i("AUTH", "working")
-                        uiState.verificationId?.let {
-
-                            viewModel.verifyOtp(it, otp)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                ) {
-                    Text(
-                        "Continue",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Text(
-                    text = "Expires in $timeLeft seconds",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                )
-
-            }
         }
+    }
 }
 
 @Composable
@@ -173,8 +148,6 @@ fun OtpInput(
     val focusRequester = remember { FocusRequester() }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-        // Invisible but functional TextField
         OutlinedTextField(
             value = otp,
             onValueChange = { value ->
@@ -186,14 +159,10 @@ fun OtpInput(
                 .focusRequester(focusRequester)
                 .fillMaxWidth()
                 .height(0.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
-            )
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             repeat(6) { index ->
                 Box(
                     modifier = Modifier
@@ -224,7 +193,6 @@ fun OtpInput(
     }
 }
 
-
 @Composable
 fun OtpInputField(
     otp: String,
@@ -254,7 +222,7 @@ fun OtpInputField(
                             focusRequesters[index + 1].requestFocus()
                         }
 
-                        if(value.isEmpty() && index > 0) {
+                        if (value.isEmpty() && index > 0) {
                             focusRequesters[index - 1].requestFocus()
                         }
                     }
@@ -270,10 +238,8 @@ fun OtpInputField(
                             otp.getOrNull(index).toString().isNullOrEmpty() &&
                             index > 0
                         ) {
-                            // move focus back
                             focusRequesters[index - 1].requestFocus()
 
-                            // delete previous digit
                             val newOtp = otp
                                 .padEnd(6, ' ')
                                 .toCharArray()
@@ -282,7 +248,6 @@ fun OtpInputField(
                                 .trimEnd()
 
                             onOtpChange(newOtp)
-
                             true
                         } else {
                             false
@@ -294,9 +259,7 @@ fun OtpInputField(
                     fontWeight = FontWeight.Bold
                 ),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(4.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.tertiary,
