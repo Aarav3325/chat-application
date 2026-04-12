@@ -8,21 +8,26 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.domain.repository.AuthRepository
 import com.aarav.chatapplication.domain.repository.PresenceRepository
-import com.aarav.chatapplication.presentation.navigation.BottomNavigation
+import com.aarav.chatapplication.presentation.call.CallViewModel
+import com.aarav.chatapplication.presentation.call.IncomingCallBanner
 import com.aarav.chatapplication.presentation.navigation.NavGraph
 import com.aarav.chatapplication.presentation.navigation.NavRoute
 import com.aarav.chatapplication.ui.theme.AppTheme
@@ -64,6 +69,11 @@ class MainActivity : ComponentActivity() {
                     currentUserId = firebaseAuth.currentUser?.uid
                 }
 
+                var showCallBanner by remember {
+                    mutableStateOf(false)
+                }
+
+
                 val show = currentRoute in navItems
 
                 val context = LocalContext.current
@@ -82,31 +92,72 @@ class MainActivity : ComponentActivity() {
 
                 val launcher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
-                ) {
-                    granted ->
+                ) { granted ->
                     isAudioPermissionGranted = granted
                 }
 
                 LaunchedEffect(isAudioPermissionGranted) {
-                    if(!isAudioPermissionGranted) {
+                    if (!isAudioPermissionGranted) {
                         launcher.launch(audioPermission)
                     }
                 }
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = {
-                        AnimatedVisibility(show) {
-                            BottomNavigation(navController)
+                val mainViewModel: MainVM = hiltViewModel()
+
+                val callViewModel: CallViewModel = hiltViewModel()
+
+                var callInfo by remember {
+                    mutableStateOf<CallModel?>(null)
+                }
+
+                LaunchedEffect(currentUserId) {
+                    currentUserId?.let {
+                        mainViewModel.listenForIncomingCalls(it)
+
+                        mainViewModel.incomingCall.collect { call ->
+                            showCallBanner = true
+                            callInfo = call
                         }
                     }
-                ) { innerPadding ->
+                }
+
+
+
+                /*
+                navController.navigate("call/${call.callId}/${call.callerId}/${call.receiverId}/${false}")
+                 */
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+
+
                     NavGraph(
                         navController,
                         authRepository,
-                        currentUserId,
-                        Modifier.padding(innerPadding),
+                        callViewModel,
+                        currentUserId
                     )
+
+                    if(showCallBanner) {
+                        IncomingCallBanner(
+                            callerName = "Test",
+                            onAccept = {
+                                showCallBanner = false
+                                navController.navigate("call/${callInfo?.callId}/${callInfo?.callerId}/${callInfo?.receiverId}/${false}")
+                            },
+                            onDecline = {
+                                showCallBanner = false
+                                callInfo?.let {
+                                    callViewModel.endCall(it.callId)
+                                }
+                            },
+                            modifier = Modifier.align(
+                                androidx.compose.ui.Alignment.TopCenter
+                            )
+                                .padding(top = 48.dp)
+                        )
+                    }
                 }
             }
         }

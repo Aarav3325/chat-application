@@ -11,10 +11,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.aarav.chatapplication.presentation.auth.AuthScreen
-import com.aarav.chatapplication.presentation.chat.ChatScreen
 import com.aarav.chatapplication.domain.repository.AuthRepository
+import com.aarav.chatapplication.presentation.auth.AuthScreen
 import com.aarav.chatapplication.presentation.call.CallScreen
+import com.aarav.chatapplication.presentation.call.CallViewModel
+import com.aarav.chatapplication.presentation.chat.ChatScreen
 import com.aarav.chatapplication.presentation.group.CreateGroupScreen
 import com.aarav.chatapplication.presentation.group.GroupChatScreen
 import com.aarav.chatapplication.presentation.home.HomeScreen
@@ -25,34 +26,36 @@ import com.aarav.chatapplication.utils.generateChatId
 fun NavGraph(
     navHostController: NavHostController,
     authRepository: AuthRepository,
+    callViewModel: CallViewModel,
     userId: String?,
-    modifier: Modifier
+    modifier: Modifier = Modifier
 ) {
 
     val isLoggedIn = authRepository.isLoggedIn()
 
     NavHost(
         navHostController,
-        startDestination = if(isLoggedIn) NavRoute.Home.path else NavRoute.Auth.path
+        startDestination = if (isLoggedIn) NavRoute.Home.path else NavRoute.Auth.path
     ) {
-        addHomeScreen(navHostController, this)
+        addHomeScreen(navHostController, this, callViewModel)
         addChatScreen(navHostController, this, userId ?: "")
         addGroupChatScreen(navHostController, this)
         addCreateGroupScreen(navHostController, this)
-        addCallScreen(navHostController, this)
+        addCallScreen(navHostController, this, callViewModel)
         addAuthScreen(navHostController, this)
         addProfileScreen(navHostController, this)
     }
 }
 
-fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, callViewModel: CallViewModel) {
     navGraphBuilder.composable(
         route = NavRoute.Home.path,
     ) {
 
         HomeScreen(
-            navigateToChat = {
-                receiverId, userId ->
+            callViewModel = callViewModel,
+            navController,
+            navigateToChat = { receiverId, userId ->
 
                 navController.navigate(NavRoute.Chat.createRoute(receiverId, userId))
             },
@@ -62,9 +65,15 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
             navigateToCreateGroup = { userId ->
                 navController.navigate(NavRoute.CreateGroup.createRoute(userId))
             },
-            navigateToCall = {
-                callId, callerId, receiverId, isCaller ->
-                navController.navigate(NavRoute.Call.createRoute(callId, callerId, receiverId, isCaller))
+            navigateToCall = { callId, callerId, receiverId, isCaller ->
+                navController.navigate(
+                    NavRoute.Call.createRoute(
+                        callId,
+                        callerId,
+                        receiverId,
+                        isCaller
+                    )
+                )
             },
             onLogout = {
                 navController.navigate(NavRoute.Auth.path) {
@@ -77,6 +86,7 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
         )
     }
 }
+
 fun addAuthScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
     navGraphBuilder.composable(
         route = NavRoute.Auth.path
@@ -94,7 +104,9 @@ fun addProfileScreen(navController: NavController, navGraphBuilder: NavGraphBuil
     navGraphBuilder.composable(
         route = NavRoute.Profile.path
     ) {
-        ProfileScreen()
+        ProfileScreen(
+            navController
+        )
     }
 }
 
@@ -191,7 +203,7 @@ fun addCreateGroupScreen(navController: NavController, navGraphBuilder: NavGraph
 }
 
 
-fun addCallScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+fun addCallScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, callViewModel: CallViewModel) {
     navGraphBuilder.composable(
         route = NavRoute.Call.path.plus("/{callId}/{callerId}/{receiverId}/{isCaller}"),
         arguments = listOf(
@@ -214,7 +226,7 @@ fun addCallScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
             onCallEnd = {
                 navController.popBackStack()
             },
-            viewModel = hiltViewModel()
+            viewModel = callViewModel
         )
     }
 }

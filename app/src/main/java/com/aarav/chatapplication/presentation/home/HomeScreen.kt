@@ -48,19 +48,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.presentation.call.CallViewModel
 import com.aarav.chatapplication.presentation.chat.formatTimestamp
 import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
 import com.aarav.chatapplication.presentation.components.CustomBottomSheet
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.presentation.model.DirectChatEntry
 import com.aarav.chatapplication.presentation.model.GroupChatEntry
+import com.aarav.chatapplication.presentation.navigation.BottomNavigation
 import com.aarav.chatapplication.ui.theme.manrope
 import com.posthog.PostHog
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
+    callViewModel: CallViewModel,
+    navController: NavController,
     navigateToChat: (String, String) -> Unit,
     navigateToGroupChat: (String, String, String) -> Unit,
     navigateToCreateGroup: (String) -> Unit,
@@ -79,15 +84,15 @@ fun HomeScreen(
         Log.i("CHAT", "chatList : " + uiState.chatList.toString())
     }
 
-    LaunchedEffect(uiState.userId) {
-        uiState.userId?.let {
-            homeScreenVM.listenForIncomingCalls(it)
-
-            homeScreenVM.incomingCall.collect { call ->
-                navigateToCall(call.callId, call.callerId, call.receiverId, false)
-            }
-        }
-    }
+//    LaunchedEffect(uiState.userId) {
+//        uiState.userId?.let {
+//            homeScreenVM.listenForIncomingCalls(it)
+//
+//            homeScreenVM.incomingCall.collect { call ->
+//                navigateToCall(call.callId, call.callerId, call.receiverId, false)
+//            }
+//        }
+//    }
 
     var showCreateChatModal by remember {
         mutableStateOf(false)
@@ -241,6 +246,9 @@ fun HomeScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            BottomNavigation(navController)
         }
     ) {
         if (uiState.isLoading) {

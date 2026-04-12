@@ -2,6 +2,7 @@ package com.aarav.chatapplication.presentation.call
 
 import android.content.Context
 import android.media.AudioManager
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,11 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -37,6 +40,15 @@ import androidx.compose.ui.unit.dp
 import com.aarav.chatapplication.R
 import com.aarav.chatapplication.data.model.CallModel
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun CallScreen(
@@ -122,7 +134,7 @@ fun CallScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if(!callEnded) {
+            if (!callEnded) {
                 Text("Time: ${time}s")
             }
         }
@@ -153,7 +165,8 @@ fun CallScreen(
 //        }
 
         CallActionToolbar(
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .padding(bottom = 54.dp),
             isMicEnabled = !isMuted,
             isSpeakerOn = isSpeakerOn,
@@ -241,6 +254,108 @@ fun CallActionToolbar(
                 contentDescription = "End Call",
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun IncomingCallBanner(
+    callerName: String,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        elevation = CardDefaults.cardElevation(8.dp)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+
+            // 🔹 Top Row (Avatar + Info)
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = callerName.first().uppercase(),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = callerName,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Text(
+                        text = "Incoming call",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 🔹 Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                // ❌ Decline (Custom Red)
+                OutlinedButton(
+                    onClick = onDecline,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFE53935)
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFE53935))
+                ) {
+                    Text("Decline")
+                }
+
+                // ✅ Accept (Custom Green)
+                Button(
+                    onClick = onAccept,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Accept")
+                }
+            }
         }
     }
 }

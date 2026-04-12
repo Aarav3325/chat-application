@@ -64,6 +64,7 @@ class CallViewModel @Inject constructor(
                             _callState.value = "CONNECTED"
                             startTimer()
                         }
+
                         "DISCONNECTED" -> _callState.value = "DISCONNECTED"
                         "FAILED" -> _callState.value = "FAILED"
                         else -> _callState.value = "CONNECTING"
@@ -225,11 +226,18 @@ class CallViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        webRTCClient.closeConnection()
+
         connectionJob?.cancel()
+        connectionJob = null
+
         signalingJob?.cancel()
+        signalingJob = null
+
         iceOutgoingJob?.cancel()
+        iceOutgoingJob = null
+
         iceIncomingJob?.cancel()
+        iceIncomingJob = null
 
         activeCallId?.let { signalingClient.cleanupCallData(it) }
     }

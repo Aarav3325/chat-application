@@ -14,11 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.aarav.chatapplication.presentation.navigation.BottomNavigation
 import com.aarav.chatapplication.ui.theme.manrope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    navController: NavController
+) {
 
     Scaffold(
         topBar = {
@@ -33,6 +37,9 @@ fun ProfileScreen() {
                     )
                 },
             )
+        },
+        bottomBar = {
+            BottomNavigation(navController)
         }
     ) {
         Box(
