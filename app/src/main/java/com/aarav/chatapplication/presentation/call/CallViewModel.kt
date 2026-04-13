@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.webrtc.EglBase
 import org.webrtc.VideoTrack
@@ -47,8 +49,10 @@ class CallViewModel @Inject constructor(
     private val _callTime = MutableStateFlow(0)
     val callTime = _callTime.asStateFlow()
 
-    val _events = MutableSharedFlow<UiEvent>()
-    val events = _events.asSharedFlow()
+    // using Channel instead of MutableSharedFlow to ensure one-time UI navigation events
+    // are queued and never dropped if the composable isn't actively collecting
+    private val _events = Channel<UiEvent>()
+    val events = _events.receiveAsFlow()
 
     val remoteVideoTrack = webRTCClient.remoteVideoTrackFlow
     private val _localVideoTrack = MutableStateFlow<VideoTrack?>(null)
@@ -58,6 +62,7 @@ class CallViewModel @Inject constructor(
     private var signalingJob: Job? = null
     private var iceOutgoingJob: Job? = null
     private var iceIncomingJob: Job? = null
+    private var timerJob: Job? = null
 
     init {
         connectionJob = viewModelScope.launch {
@@ -73,7 +78,13 @@ class CallViewModel @Inject constructor(
 
                         "DISCONNECTED" -> _callState.value = "DISCONNECTED"
                         "FAILED" -> _callState.value = "FAILED"
-                        else -> _callState.value = "CONNECTING"
+                        "NEW" -> {
+                            // ignore "NEW" state from WebRTC, if we don't, it instantly maps to IDLE and
+                            // overwrites the "CALLING" or "RECEIVING" UI text
+                        }
+                        else -> {
+                            _callState.value = "CONNECTING"
+                        }
                     }
                 }
             }
@@ -90,8 +101,12 @@ class CallViewModel @Inject constructor(
         isOfferHandled = false
         isAnswerHandled = false
         isEnding = false
+        timerStarted = false
+        _callTime.value = 0
+        // cancel and cleanly reset timer before initialization
+        timerJob?.cancel()
         _callEnded.value = false
-//        _callState.value = "CALLING"
+        _callState.value = "CALLING"
 
         viewModelScope.launch {
             webRTCClient.init()
@@ -116,8 +131,11 @@ class CallViewModel @Inject constructor(
         isOfferHandled = false
         isAnswerHandled = false
         isEnding = false
+        timerStarted = false
+        _callTime.value = 0
+        timerJob?.cancel()
         _callEnded.value = false
-        //_callState.value = "RECEIVING"
+        _callState.value = "RECEIVING"
 
         viewModelScope.launch {
             webRTCClient.init()
@@ -143,14 +161,14 @@ class CallViewModel @Inject constructor(
                 .collect { call ->
                     if (isEnding) return@collect
 
-                    if (call == null || call.ended) {
+                    if (call?.ended == true) {
                         finishCall()
                         return@collect
                     }
 
-                    if (!isCaller && call.offer != null && !isOfferHandled) {
+                    if (!isCaller && call?.offer != null && !isOfferHandled) {
                         isOfferHandled = true
-                        //_callState.value = "CONNECTING"
+                        _callState.value = "CONNECTING"
 
                         webRTCClient.onRemoteOfferReceived(call.offer) { answer ->
                             viewModelScope.launch {
@@ -161,9 +179,9 @@ class CallViewModel @Inject constructor(
                         }
                     }
 
-                    if (isCaller && call.answer != null && !isAnswerHandled) {
+                    if (isCaller && call?.answer != null && !isAnswerHandled) {
                         isAnswerHandled = true
-                        //_callState.value = "CONNECTING"
+                        _callState.value = "CONNECTING"
                         webRTCClient.onAnswerReceived(call.answer)
                     }
                 }
@@ -201,7 +219,7 @@ class CallViewModel @Inject constructor(
     private fun startTimer() {
         if (timerStarted) return
         timerStarted = true
-        viewModelScope.launch {
+        timerJob = viewModelScope.launch {
             while (true) {
                 delay(1000)
                 _callTime.value++
@@ -217,12 +235,40 @@ class CallViewModel @Inject constructor(
             try {
                 signalingClient.endCall(callId)
                 webRTCClient.closeConnection()
+
+                _callState.value = "ENDED"
+                _callEnded.value = true
+
             } catch (e: Exception) {
                 Log.e("CALL", "Error ending call", e)
             }
-            _callState.value = "ENDED"
-            _events.emit(UiEvent.EndCall)
+            
+            // using trySend() instead of send(), if the user clicks decline from the home banner
+            // without ever entering the CallScreen, there are no active collectors observing events
+            // send() would suspend the coroutine indefinitely waiting for one, permanently freezing the logic below it
+            _events.trySend(UiEvent.EndCall)
+            _localVideoTrack.value = null
             _callEnded.value = true
+
+//            connectionJob?.cancel()
+//            connectionJob = null
+
+            signalingJob?.cancel()
+            signalingJob = null
+
+            iceOutgoingJob?.cancel()
+            iceOutgoingJob = null
+
+            iceIncomingJob?.cancel()
+            iceIncomingJob = null
+            timerJob?.cancel()
+            timerJob = null
+
+
+            delay(1000)
+            signalingClient.cleanupCallData(callId)
+            activeCallId = null
+            _callState.value = "IDLE"
         }
     }
 
@@ -232,9 +278,36 @@ class CallViewModel @Inject constructor(
         _callState.value = "ENDED"
         viewModelScope.launch {
             webRTCClient.closeConnection()
-            _events.emit(UiEvent.EndCall)
+            _events.trySend(UiEvent.EndCall)
+
+            _localVideoTrack.value = null
+            _callEnded.value = true
+
+//        connectionJob?.cancel()
+//        connectionJob = null
+
+            signalingJob?.cancel()
+            signalingJob = null
+
+            iceOutgoingJob?.cancel()
+            iceOutgoingJob = null
+
+            iceIncomingJob?.cancel()
+            iceIncomingJob = null
+            timerJob?.cancel()
+            timerJob = null
+
+            delay(1000)
+            if (activeCallId != null) {
+                signalingClient.cleanupCallData(activeCallId!!)
+            } else {
+                // if it was somehow null but finishCall triggered, we can't clean up data
+            }
+            activeCallId = null
+            _callState.value = "IDLE"
+
         }
-        _callEnded.value = true
+
     }
 
     fun toggleMute() {
@@ -246,22 +319,9 @@ class CallViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
 
-        connectionJob?.cancel()
-        connectionJob = null
+        Log.d("MYTAG", "callvm cleared")
 
-        signalingJob?.cancel()
-        signalingJob = null
 
-        iceOutgoingJob?.cancel()
-        iceOutgoingJob = null
-
-        iceIncomingJob?.cancel()
-        iceIncomingJob = null
-
-        activeCallId?.let {
-            signalingClient.cleanupCallData(it)
-            activeCallId = null
-        }
     }
 }
 

@@ -45,7 +45,7 @@ class WebRTCClient
     )
     val iceCandidateFlow = _iceCandidateFlow.asSharedFlow()
 
-    private val _remoteVideoTrackFlow = MutableSharedFlow<VideoTrack>(
+    private val _remoteVideoTrackFlow = MutableSharedFlow<VideoTrack?>(
         replay = 1
     )
     val remoteVideoTrackFlow = _remoteVideoTrackFlow.asSharedFlow()
@@ -358,6 +358,7 @@ class WebRTCClient
         }
         peerConnection = null
 
+        _remoteVideoTrackFlow.tryEmit(null)
         try {
             peerConnectionFactory?.dispose()
         } catch (e: Exception) {

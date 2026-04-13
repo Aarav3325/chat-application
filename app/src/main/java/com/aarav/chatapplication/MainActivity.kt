@@ -128,9 +128,17 @@ class MainActivity : ComponentActivity() {
                 val callViewModel: CallViewModel = hiltViewModel()
 
                 val callState by callViewModel.callState.collectAsState()
+                val callEnded by callViewModel.callEnded.collectAsState()
 
                 var callInfo by remember {
                     mutableStateOf<CallModel?>(null)
+                }
+
+                LaunchedEffect(callState) {
+                    if (callState == "ENDED") {
+                        showCallBanner = false
+                        callInfo = null
+                    }
                 }
 
                 LaunchedEffect(currentUserId) {
@@ -138,7 +146,11 @@ class MainActivity : ComponentActivity() {
                         mainViewModel.listenForIncomingCalls(it)
 
                         mainViewModel.incomingCall.collect { call ->
-                            if (callInfo?.callId != call.callId) {
+                            if (
+                                callState == "IDLE" &&
+                                !showCallBanner &&
+                                callInfo == null
+                            ) {
                                 showCallBanner = true
                                 callInfo = call
                             }

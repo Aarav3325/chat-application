@@ -140,6 +140,13 @@ fun CallScreen(
 
     LaunchedEffect(Unit) {
         viewModel.remoteVideoTrack.collect { track ->
+
+
+            if (track == null) {
+                remoteView.clearImage()
+                return@collect
+            }
+
             Log.d("CALL", "remote $track")
             track.setEnabled(true)
             track.addSink(remoteView)
@@ -184,6 +191,7 @@ fun CallScreen(
                                 "FAILED" -> "Failed"
                                 "CLOSED" -> "Call Ended"
                                 "ENDED" -> "Call Ended"
+                                "IDLE" -> ""
                                 else -> "Initializing..."
                             },
                             style = MaterialTheme.typography.bodyLarge
