@@ -20,7 +20,8 @@ data class CallModel(
 data class IceCandidateModel(
     val sdp: String = "",
     val sdpMid: String? = null,
-    val sdpMLineIndex: Int = 0
+    val sdpMLineIndex: Int = 0,
+    val senderId: String = ""
 )
 
 data class CallHistoryModel(

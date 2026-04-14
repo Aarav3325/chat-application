@@ -298,7 +298,8 @@ class CallViewModel @Inject constructor(
                         IceCandidateModel(
                             sdp = candidate.sdp,
                             sdpMid = candidate.sdpMid,
-                            sdpMLineIndex = candidate.sdpMLineIndex
+                            sdpMLineIndex = candidate.sdpMLineIndex,
+                            senderId = myUserId
                         )
                     )
                 }
@@ -306,7 +307,7 @@ class CallViewModel @Inject constructor(
         }
 
         iceIncomingJob = viewModelScope.launch {
-            signalingClient.listenForCandidate(callId)
+            signalingClient.listenForCandidate(callId, myUserId)
                 .collect { (candidate, fromUserId) ->
                     webRTCClient.addIceCandidate(fromUserId, candidate)
                 }

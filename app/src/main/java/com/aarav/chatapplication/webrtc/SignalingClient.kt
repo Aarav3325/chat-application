@@ -116,7 +116,11 @@ class SignalingClient
         }
     }
 
-    suspend fun sendICECandidate(callId: String, candidate: IceCandidateModel) {
+    suspend fun sendICECandidate(
+        callId: String,
+        receiverId: String,
+        candidate: IceCandidateModel
+    ) {
         val data = IceCandidateModel(
             sdp = candidate.sdp,
             sdpMid = candidate.sdpMid,
@@ -125,14 +129,20 @@ class SignalingClient
 
         callRef.child(callId)
             .child("candidates")
+            .child(receiverId)
             .push()
             .setValue(data)
             .await()
     }
 
-    fun listenForCandidate(callId: String): Flow<IceCandidateModel> = callbackFlow {
+    fun listenForCandidate(
+        callId: String,
+        myUserId: String
+    ): Flow<Pair<IceCandidateModel, String>> = callbackFlow {
 
-        val ref = callRef.child(callId).child("candidates")
+        val ref = callRef.child(callId)
+            .child("candidates")
+            .child(myUserId)
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(
@@ -140,8 +150,9 @@ class SignalingClient
                 previousChildName: String?
             ) {
                 val candidate = snapshot.getValue(IceCandidateModel::class.java)
+
                 candidate?.let {
-                    trySend(it)
+                    trySend(it to it.senderId)
                 }
             }
 
