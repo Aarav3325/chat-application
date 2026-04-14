@@ -4,12 +4,14 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.RingtoneManager
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -47,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.aarav.chatapplication.R
 import com.aarav.chatapplication.data.model.CallModel
+import com.aarav.chatapplication.utils.formatTime
 import kotlinx.coroutines.delay
 import org.webrtc.SurfaceViewRenderer
 
@@ -89,6 +93,9 @@ fun CallScreen(
     val isMuted by viewModel.isMuted.collectAsState()
 
     var isSpeakerOn by remember { mutableStateOf(true) }
+
+    var videoReady by remember { mutableStateOf(false) }
+
 
     val time by viewModel.callTime.collectAsState()
 
@@ -142,10 +149,15 @@ fun CallScreen(
         val eglContext = viewModel.getEglContext()
 
         remoteView.init(eglContext, null)
+        remoteView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        remoteView.setZOrderOnTop(true)
+        remoteView.setZOrderMediaOverlay(true)
         remoteView.setEnableHardwareScaler(true)
         remoteView.setZOrderMediaOverlay(false)
 
         localView.init(eglContext, null)
+        localView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        localView.setZOrderMediaOverlay(true)
         localView.setEnableHardwareScaler(true)
         localView.setZOrderMediaOverlay(true)
 
@@ -173,6 +185,8 @@ fun CallScreen(
                 remoteView.clearImage()
                 return@collect
             }
+
+            videoReady = true
 
             Log.d("CALL", "remote $track")
             track.setEnabled(true)
@@ -209,53 +223,60 @@ fun CallScreen(
     }
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = when (state) {
-                                "CALLING" -> "Calling..."
-                                "RECEIVING" -> "Receiving Call..."
-                                "CONNECTING" -> "Connecting..."
-                                "CONNECTED" -> "Connected"
-                                "DISCONNECTED" -> "Disconnected"
-                                "FAILED" -> "Failed"
-                                "CLOSED" -> "Call Ended"
-                                "ENDED" -> "Call Ended"
-                                "IDLE" -> ""
-                                else -> "Initializing..."
-                            },
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-
-                        if (!callEnded && state == "CONNECTED") {
-                            Text(
-                                "Time: ${time}s",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {},
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(0.45f),
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = "Back",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            )
-        }
+        containerColor = Color.Transparent,
+        modifier = Modifier.fillMaxSize(),
+//        topBar = {
+//            CenterAlignedTopAppBar(
+//                colors = TopAppBarDefaults.topAppBarColors(
+//                    containerColor = Color.Transparent
+//                ),
+//                title = {
+//                    Column(
+//                        verticalArrangement = Arrangement.Center
+//                    ) {
+//                        Text(
+//                            text = when (state) {
+//                                "CALLING" -> "Calling..."
+//                                "RECEIVING" -> "Receiving Call..."
+//                                "CONNECTING" -> "Connecting..."
+//                                "CONNECTED" -> "Connected"
+//                                "DISCONNECTED" -> "Disconnected"
+//                                "FAILED" -> "Failed"
+//                                "CLOSED" -> "Call Ended"
+//                                "ENDED" -> "Call Ended"
+//                                "IDLE" -> ""
+//                                else -> "Initializing..."
+//                            },
+//                            color = Color.White,
+//                            style = MaterialTheme.typography.bodyLarge
+//                        )
+//
+//                        if (!callEnded && state == "CONNECTED") {
+//                            Text(
+//                                text = formatTime(time),
+//                                color = Color.White,
+//                                style = MaterialTheme.typography.bodySmall
+//                            )
+//                        }
+//                    }
+//                },
+//                navigationIcon = {
+//                    IconButton(
+//                        onClick = {},
+//                        colors = IconButtonDefaults.iconButtonColors(
+//                            containerColor = MaterialTheme.colorScheme.surface.copy(0.45f),
+//                            contentColor = MaterialTheme.colorScheme.onSurface
+//                        )
+//                    ) {
+//                        Icon(
+//                            painter = painterResource(R.drawable.arrow_back),
+//                            contentDescription = "Back",
+//                            modifier = Modifier.size(24.dp)
+//                        )
+//                    }
+//                }
+//            )
+//        }
     ) {
 
         Box(
@@ -264,19 +285,34 @@ fun CallScreen(
                 .padding(it)
         ) {
 
+
+
             AndroidView(
                 factory = { remoteView },
                 modifier = Modifier.fillMaxSize()
+                    .alpha(if (videoReady) 1f else 0f)
             )
 
             AndroidView(
                 factory = { localView },
                 modifier = Modifier
+                    .padding(top = 78.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .size(120.dp)
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp)
             )
+
+            if (!videoReady) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(callerName, color = Color.White, fontSize = 22.sp)
+                }
+            }
 
 //        Column() {
 //            Text(
@@ -324,6 +360,86 @@ fun CallScreen(
 //                Text("End Call")
 //            }
 //        }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .background(Color.Transparent) // optional blur feel
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+            ) {
+//
+//                Surface(
+//                    modifier = Modifier
+//                        .align(Alignment.CenterStart)
+//                        .clip(CircleShape)
+//                        .size(32.dp)
+//                        .clickable {
+//
+//                        }
+//                        .background(
+//                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+//                        )
+//
+//                ) {
+//                    Icon(
+//                        painter = painterResource(R.drawable.arrow_back),
+//                        contentDescription = "Back",
+//                        tint = Color.White,
+//                        modifier = Modifier.size(24.dp)
+//                    )
+//                }
+//
+//                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier.align(Alignment.Center)
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = when (state) {
+                            "CALLING" -> "Calling..."
+                            "RECEIVING" -> "Receiving Call..."
+                            "CONNECTING" -> "Connecting..."
+                            "CONNECTED" -> "Connected"
+                            "DISCONNECTED" -> "Disconnected"
+                            "FAILED" -> "Failed"
+                            "CLOSED", "ENDED" -> "Call Ended"
+                            else -> "Initializing..."
+                        },
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    if (!callEnded && state == "CONNECTED") {
+                        Text(
+                            text = formatTime(time),
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            CallActionToolbar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 54.dp),
+                isMicEnabled = !isMuted,
+                isSpeakerOn = isSpeakerOn,
+                onMicClick = { viewModel.toggleMute() },
+                onSpeakerClick = {
+                    isSpeakerOn = !isSpeakerOn
+                    audioManager.isSpeakerphoneOn = isSpeakerOn
+                },
+                onEndCallClick = {
+                    viewModel.endCall(callId)
+                },
+                toggleCamera = {
+                    viewModel.toggleCamera()
+                }
+            )
 
             CallActionToolbar(
                 modifier = Modifier
@@ -448,7 +564,21 @@ fun IncomingCallBanner(
     val context = LocalContext.current
     val vibrator = context.getSystemService(Vibrator::class.java)
 
+    val ringtone = remember {
+        RingtoneManager.getRingtone(
+            context,
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        )
+    }
+
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+
     LaunchedEffect(Unit) {
+
+        audioManager.mode = AudioManager.MODE_RINGTONE
+
+        ringtone.play()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator?.vibrate(
@@ -464,7 +594,10 @@ fun IncomingCallBanner(
 
     DisposableEffect(Unit) {
         onDispose {
+
+            audioManager.mode = AudioManager.MODE_NORMAL
             vibrator?.cancel()
+            if (ringtone.isPlaying) ringtone.stop()
         }
     }
 
