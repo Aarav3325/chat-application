@@ -9,6 +9,10 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import androidx.compose.animation.core.TwoWayConverter
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateValueAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -96,6 +100,11 @@ fun CallScreen(
 
     var videoReady by remember { mutableStateOf(false) }
 
+    val videoAlpha by animateFloatAsState(
+        targetValue = if (videoReady) 1f else 0f,
+        label = "videoAlpha",
+        animationSpec = tween(durationMillis = 700),
+    )
 
     val time by viewModel.callTime.collectAsState()
 
@@ -224,59 +233,7 @@ fun CallScreen(
 
     Scaffold(
         containerColor = Color.Transparent,
-        modifier = Modifier.fillMaxSize(),
-//        topBar = {
-//            CenterAlignedTopAppBar(
-//                colors = TopAppBarDefaults.topAppBarColors(
-//                    containerColor = Color.Transparent
-//                ),
-//                title = {
-//                    Column(
-//                        verticalArrangement = Arrangement.Center
-//                    ) {
-//                        Text(
-//                            text = when (state) {
-//                                "CALLING" -> "Calling..."
-//                                "RECEIVING" -> "Receiving Call..."
-//                                "CONNECTING" -> "Connecting..."
-//                                "CONNECTED" -> "Connected"
-//                                "DISCONNECTED" -> "Disconnected"
-//                                "FAILED" -> "Failed"
-//                                "CLOSED" -> "Call Ended"
-//                                "ENDED" -> "Call Ended"
-//                                "IDLE" -> ""
-//                                else -> "Initializing..."
-//                            },
-//                            color = Color.White,
-//                            style = MaterialTheme.typography.bodyLarge
-//                        )
-//
-//                        if (!callEnded && state == "CONNECTED") {
-//                            Text(
-//                                text = formatTime(time),
-//                                color = Color.White,
-//                                style = MaterialTheme.typography.bodySmall
-//                            )
-//                        }
-//                    }
-//                },
-//                navigationIcon = {
-//                    IconButton(
-//                        onClick = {},
-//                        colors = IconButtonDefaults.iconButtonColors(
-//                            containerColor = MaterialTheme.colorScheme.surface.copy(0.45f),
-//                            contentColor = MaterialTheme.colorScheme.onSurface
-//                        )
-//                    ) {
-//                        Icon(
-//                            painter = painterResource(R.drawable.arrow_back),
-//                            contentDescription = "Back",
-//                            modifier = Modifier.size(24.dp)
-//                        )
-//                    }
-//                }
-//            )
-//        }
+        modifier = Modifier.fillMaxSize()
     ) {
 
         Box(
@@ -290,7 +247,7 @@ fun CallScreen(
             AndroidView(
                 factory = { remoteView },
                 modifier = Modifier.fillMaxSize()
-                    .alpha(if (videoReady) 1f else 0f)
+                    .alpha(videoAlpha)
             )
 
             AndroidView(

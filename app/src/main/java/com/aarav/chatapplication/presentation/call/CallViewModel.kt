@@ -7,6 +7,7 @@ import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.IceCandidateModel
 import com.aarav.chatapplication.domain.repository.UserRepository
 import com.aarav.chatapplication.webrtc.SignalingClient
+import com.aarav.chatapplication.webrtc.CallStateManager
 import com.aarav.chatapplication.webrtc.WebRTCClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -24,7 +25,8 @@ import javax.inject.Inject
 class CallViewModel @Inject constructor(
     private val signalingClient: SignalingClient,
     private val webRTCClient: WebRTCClient,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val callStateManager: CallStateManager
 ) : ViewModel() {
 
     private var isCaller = false
@@ -38,8 +40,7 @@ class CallViewModel @Inject constructor(
     @Volatile
     private var isEnding = false
 
-    private val _callState = MutableStateFlow("IDLE")
-    val callState = _callState.asStateFlow()
+    val callState = callStateManager.callState
 
     private val _callEnded = MutableStateFlow(false)
     val callEnded = _callEnded.asStateFlow()
@@ -75,19 +76,19 @@ class CallViewModel @Inject constructor(
                     when (state) {
                         "CONNECTED" -> {
                             Log.d("CONNECTION", "connected: $state")
-                            _callState.value = "CONNECTED"
+                            callStateManager.updateState("CONNECTED")
                             startTimer()
                         }
 
-                        "DISCONNECTED" -> _callState.value = "DISCONNECTED"
-                        "FAILED" -> _callState.value = "FAILED"
+                        "DISCONNECTED" -> callStateManager.updateState("DISCONNECTED")
+                        "FAILED" -> callStateManager.updateState("FAILED")
                         "NEW" -> {
                             // ignore "NEW" state from WebRTC, if we don't, it instantly maps to IDLE and
                             // overwrites the "CALLING" or "RECEIVING" UI text
                         }
 
                         else -> {
-                            _callState.value = "CONNECTING"
+                            callStateManager.updateState("CONNECTING")
                         }
                     }
                 }
@@ -111,7 +112,7 @@ class CallViewModel @Inject constructor(
         // cancel and cleanly reset timer before initialization
         timerJob?.cancel()
         _callEnded.value = false
-        _callState.value = "CALLING"
+        callStateManager.updateState("CALLING")
 
         viewModelScope.launch {
             webRTCClient.init()
@@ -152,7 +153,7 @@ class CallViewModel @Inject constructor(
         _isMuted.value = false
         timerJob?.cancel()
         _callEnded.value = false
-        _callState.value = "RECEIVING"
+        callStateManager.updateState("RECEIVING")
 
         viewModelScope.launch {
             webRTCClient.init()
@@ -189,7 +190,7 @@ class CallViewModel @Inject constructor(
 
                     if (!isCaller && call?.offer != null && !isOfferHandled) {
                         isOfferHandled = true
-                        _callState.value = "CONNECTING"
+                        callStateManager.updateState("CONNECTING")
 
                         webRTCClient.onRemoteOfferReceived(call.offer) { answer ->
                             viewModelScope.launch {
@@ -204,7 +205,7 @@ class CallViewModel @Inject constructor(
                         isAnswerHandled = true
                         isAnswered = true
                         timeoutJob?.cancel()
-                        _callState.value = "CONNECTING"
+                        callStateManager.updateState("CONNECTING")
                         webRTCClient.onAnswerReceived(call.answer)
                     }
                 }
@@ -259,7 +260,7 @@ class CallViewModel @Inject constructor(
                 signalingClient.endCall(callId)
                 webRTCClient.closeConnection()
 
-                _callState.value = "ENDED"
+                callStateManager.updateState("ENDED")
                 _callEnded.value = true
 
             } catch (e: Exception) {
@@ -291,7 +292,7 @@ class CallViewModel @Inject constructor(
             delay(1000)
             signalingClient.cleanupCallData(callId)
             activeCallId = null
-            _callState.value = "IDLE"
+            callStateManager.updateState("IDLE")
             isEnding = false
         }
     }
@@ -299,7 +300,7 @@ class CallViewModel @Inject constructor(
     private fun finishCall(callId: String) {
         if (isEnding) return
         isEnding = true
-        _callState.value = "ENDED"
+        callStateManager.updateState("ENDED")
         viewModelScope.launch {
             webRTCClient.closeConnection()
             _events.trySend(UiEvent.EndCall)
@@ -328,7 +329,7 @@ class CallViewModel @Inject constructor(
 
             signalingClient.cleanupCallData(callId)
             activeCallId = null
-            _callState.value = "IDLE"
+            callStateManager.updateState("IDLE")
             isEnding = false
 
         }

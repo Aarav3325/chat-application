@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.domain.model.User
 import com.aarav.chatapplication.domain.repository.UserRepository
+import com.aarav.chatapplication.webrtc.CallStateManager
 import com.aarav.chatapplication.webrtc.SignalingClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 class MainVM
 @Inject constructor(
     val signalingClient: SignalingClient,
-    val userRepository: UserRepository
+    val userRepository: UserRepository,
+    val callStateManager: CallStateManager
 ) : ViewModel() {
     private val _incomingCall = MutableStateFlow<CallModel?>(null)
     val incomingCall = _incomingCall.asStateFlow()
@@ -38,7 +40,11 @@ class MainVM
                     }
 
                     if (call.offer != null && call.answer == null) {
-                        _incomingCall.value = call
+                        if (callStateManager.callState.value != "IDLE") {
+                            signalingClient.endCall(call.callId)
+                        } else {
+                            _incomingCall.value = call
+                        }
                     }
                 }
         }
