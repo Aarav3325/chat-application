@@ -32,13 +32,19 @@ class CallViewModel @Inject constructor(
 
     private var isCaller = false
     private var callerName = ""
-    private var isOfferHandled = false
-    private var isAnswerHandled = false
+
+    private val connectedUsers = mutableSetOf<String>()
+    private val answeredUsers = mutableSetOf<String>()
+    private val handledOffers = mutableSetOf<String>()
+    private val handledAnswers = mutableSetOf<String>()
+
     private var timerStarted = false
 
     private var activeCallId: String? = null
     private var activeCallerId: String = ""
     private var activeReceiverId: String = ""
+
+    private var myUserId: String = ""
 
     @Volatile
     private var isEnding = false
@@ -103,32 +109,49 @@ class CallViewModel @Inject constructor(
         return webRTCClient.getEglContext()
     }
 
-    fun startCall(call: CallModel) {
+    fun startCall(call: CallModel, myUserId: String) {
+        this.myUserId = myUserId
         isCaller = true
+
+        handledOffers.clear()
+        handledAnswers.clear()
+        answeredUsers.clear()
+        //connectedUsers.clear()
+
         activeCallId = call.callId
         callStateManager.activeCallId = call.callId
         activeCallerId = call.callerId
-        activeReceiverId = call.receiverId
-        isOfferHandled = false
-        isAnswerHandled = false
+        activeReceiverId = call.participants.firstOrNull { it != myUserId } ?: ""
+
         isEnding = false
+        isAnswered = false
+
         _isMuted.value = false
         timerStarted = false
         _callTime.value = 0
         // cancel and cleanly reset timer before initialization
         timerJob?.cancel()
+
         _callEnded.value = false
         callStateManager.updateState("CALLING")
+
 
         viewModelScope.launch {
             webRTCClient.init()
             _localVideoTrack.value = webRTCClient.localVideoTrack
             signalingClient.createCall(call)
 
-            webRTCClient.createOffer { sdp ->
-                viewModelScope.launch {
-                    if (!isEnding) {
-                        signalingClient.sendOffer(call.callId, sdp.description)
+            val otherUsers = call.participants.filter { it != myUserId }
+
+            otherUsers.forEach { userId ->
+
+                webRTCClient.createPeerConnection(userId)
+
+                webRTCClient.createOffer(userId) { sdp ->
+                    viewModelScope.launch {
+                        if (!isEnding) {
+                            signalingClient.sendOffer(call.callId, userId, sdp.description)
+                        }
                     }
                 }
             }
@@ -149,17 +172,25 @@ class CallViewModel @Inject constructor(
         }
     }
 
-    fun receiveCall(callId: String) {
+    fun receiveCall(callId: String, myUserId: String) {
+        this.myUserId = myUserId
         isCaller = false
+
+        handledOffers.clear()
+        handledAnswers.clear()
+        answeredUsers.clear()
+//        connectedUsers.clear()
+
         activeCallId = callId
         callStateManager.activeCallId = callId
-        isOfferHandled = false
-        isAnswerHandled = false
+
         isEnding = false
+        isAnswered = false
         timerStarted = false
         _callTime.value = 0
         _isMuted.value = false
         timerJob?.cancel()
+
         _callEnded.value = false
         callStateManager.updateState("RECEIVING")
 
@@ -189,6 +220,11 @@ class CallViewModel @Inject constructor(
 
             signalingClient.listenForCall(callId)
                 .collect { call ->
+
+                    if (call != null && activeReceiverId.isEmpty()) {
+                        activeReceiverId = myUserId
+                    }
+
                     if (isEnding) return@collect
 
                     if (call?.ended == true) {
@@ -202,54 +238,77 @@ class CallViewModel @Inject constructor(
                         return@collect
                     }
 
-                    if (!isCaller && call?.offer != null && !isOfferHandled) {
-                        isOfferHandled = true
+
+                    val myOffer = call?.offers?.get(myUserId)
+
+                    if (!isCaller && myOffer != null && !handledOffers.contains(myUserId)) {
+
+                        handledOffers.add(myUserId)
+
+                        if (!isAnswered) {
+                            isAnswered = true
+                            timeoutJob?.cancel()
+                        }
+
                         callStateManager.updateState("CONNECTING")
 
-                        webRTCClient.onRemoteOfferReceived(call.offer) { answer ->
+                        val callerId = call.callerId
+
+                        webRTCClient.createPeerConnection(callerId)
+
+                        webRTCClient.onRemoteOfferReceived(callerId, myOffer) { answer ->
+
                             viewModelScope.launch {
                                 if (!isEnding) {
-                                    signalingClient.sendAnswer(callId, answer.description)
+                                    signalingClient.sendAnswer(
+                                        callId,
+                                        myUserId,
+                                        answer.description
+                                    )
                                 }
                             }
                         }
                     }
 
-                    if (isCaller && call?.answer != null && !isAnswerHandled) {
-                        isAnswerHandled = true
-                        isAnswered = true
-                        timeoutJob?.cancel()
-                        callStateManager.updateState("CONNECTING")
-                        webRTCClient.onAnswerReceived(call.answer)
+                    call?.answers.orEmpty().forEach { (userId, answer) ->
+
+                        if (!handledAnswers.contains(userId) && userId != myUserId) {
+
+                            handledAnswers.add(userId)
+                            answeredUsers.add(userId)
+
+                            if (!isAnswered) {
+                                isAnswered = true
+                                timeoutJob?.cancel()
+                            }
+
+                            webRTCClient.onAnswerReceived(userId, answer)
+                        }
                     }
                 }
         }
 
         iceOutgoingJob = viewModelScope.launch {
-            webRTCClient.iceCandidateFlow.collect { candidate ->
+            webRTCClient.iceCandidateFlow.collect { (candidate, userId) ->
+
                 if (!isEnding) {
-                    try {
-                        signalingClient.sendICECandidate(
-                            callId,
-                            IceCandidateModel(
-                                sdp = candidate.sdp,
-                                sdpMid = candidate.sdpMid,
-                                sdpMLineIndex = candidate.sdpMLineIndex
-                            )
+                    signalingClient.sendICECandidate(
+                        callId,
+                        userId,
+                        IceCandidateModel(
+                            sdp = candidate.sdp,
+                            sdpMid = candidate.sdpMid,
+                            sdpMLineIndex = candidate.sdpMLineIndex
                         )
-                    } catch (e: Exception) {
-                        Log.e("CALL", "ICE send failed", e)
-                    }
+                    )
                 }
             }
         }
 
         iceIncomingJob = viewModelScope.launch {
             signalingClient.listenForCandidate(callId)
-                .collect { candidate ->
-                    if (!isEnding) {
-                        webRTCClient.addIceCandidate(candidate)
-                    }
+                .collect { (candidate, fromUserId) ->
+                    webRTCClient.addIceCandidate(fromUserId, candidate)
                 }
         }
     }
@@ -394,6 +453,7 @@ class CallViewModel @Inject constructor(
             duration = _callTime.value.toLong(),
             status = finalStatus
         )
+        
         viewModelScope.launch {
             try {
                 signalingClient.saveCallHistory(history)
