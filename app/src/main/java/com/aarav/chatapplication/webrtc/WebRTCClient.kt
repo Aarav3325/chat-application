@@ -1,7 +1,6 @@
 package com.aarav.chatapplication.webrtc
 
 import android.util.Log
-import android.view.SurfaceView
 import com.aarav.chatapplication.data.model.IceCandidateModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -10,7 +9,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.webrtc.AudioTrack
 import org.webrtc.Camera1Enumerator
-import org.webrtc.Camera2Enumerator
 import org.webrtc.CameraVideoCapturer
 import org.webrtc.DataChannel
 import org.webrtc.DefaultVideoDecoderFactory
@@ -25,7 +23,6 @@ import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
-import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoCapturer
 import org.webrtc.VideoTrack
 import javax.inject.Inject
@@ -36,17 +33,17 @@ class WebRTCClient
 ) {
 
     private var peerConnectionFactory: PeerConnectionFactory? = null
-    private var peerConnection: PeerConnection? = null
+    private var peerConnections = mutableMapOf<String, PeerConnection>()
 
     @Volatile
     private var isClosed = false
 
-    private val _iceCandidateFlow = MutableSharedFlow<IceCandidate>(
+    private val _iceCandidateFlow = MutableSharedFlow<Pair<IceCandidate, String>>(
         replay = 10
     )
     val iceCandidateFlow = _iceCandidateFlow.asSharedFlow()
 
-    private val _remoteVideoTrackFlow = MutableSharedFlow<VideoTrack?>(
+    private val _remoteVideoTrackFlow = MutableSharedFlow<Pair<String, VideoTrack?>>(
         replay = 1
     )
     val remoteVideoTrackFlow = _remoteVideoTrackFlow.asSharedFlow()
@@ -64,7 +61,7 @@ class WebRTCClient
 
     fun init() {
 
-        if (peerConnection != null) return
+        if (peerConnectionFactory != null) return
 
         isClosed = false
         _connectionState.value = "NEW"
@@ -89,6 +86,47 @@ class WebRTCClient
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
             .createPeerConnectionFactory()
 
+//        val iceServers = listOf(
+//
+//            // STUN
+//            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302")
+//                .createIceServer(),
+//
+//            // TURN
+//            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+//                .setUsername("openrelayproject")
+//                .setPassword("openrelayproject")
+//                .createIceServer()
+//        )
+
+//        peerConnection = peerConnectionFactory?.createPeerConnection(
+//            iceServers,
+//            peerConnectionObserver
+//        )
+
+        val factory = peerConnectionFactory ?: return
+        val audioSource = factory.createAudioSource(MediaConstraints())
+        localAudioTrack = factory.createAudioTrack("audioTrack", audioSource)
+
+
+        startLocalVideo()
+//
+//        val streamIds = listOf("ARDAMS")
+//        pc.addTrack(localAudioTrack, streamIds)
+//        localVideoTrack?.let {
+//            pc.addTrack(it, streamIds)
+//        }
+
+    }
+
+    fun createPeerConnection(userId: String) {
+
+        if (isClosed) return
+
+        val factory = peerConnectionFactory ?: return
+
+        if (peerConnections.containsKey(userId)) return
+
         val iceServers = listOf(
 
             // STUN
@@ -102,31 +140,85 @@ class WebRTCClient
                 .createIceServer()
         )
 
-        peerConnection = peerConnectionFactory?.createPeerConnection(
+        val pc = factory.createPeerConnection(
             iceServers,
-            peerConnectionObserver
-        )
-
-        startLocalVideo()
-
-        val factory = peerConnectionFactory ?: return
-        val pc = peerConnection ?: return
-        val audioSource = factory.createAudioSource(MediaConstraints())
-        localAudioTrack = factory.createAudioTrack("audioTrack", audioSource)
+            createObserver(userId)
+        ) ?: return
 
         val streamIds = listOf("ARDAMS")
-        pc.addTrack(localAudioTrack, streamIds)
-        localVideoTrack?.let {
-            pc.addTrack(it, streamIds)
+
+        localAudioTrack?.let { pc.addTrack(it, streamIds) }
+        localVideoTrack?.let { pc.addTrack(it, streamIds) }
+
+        peerConnections[userId] = pc
+        Log.d("CALL", "Creating PC for $userId")
+
+    }
+
+    private fun createObserver(userId: String) = object : PeerConnection.Observer {
+        override fun onIceCandidate(candidate: IceCandidate?) {
+            if (isClosed) return
+            candidate?.let {
+                _iceCandidateFlow.tryEmit(it to userId)
+            }
         }
 
+        override fun onIceCandidatesRemoved(p0: Array<out IceCandidate?>?) {
+
+        }
+
+        override fun onAddStream(p0: MediaStream?) {
+        }
+
+        override fun onRemoveStream(p0: MediaStream?) {
+        }
+
+        override fun onDataChannel(p0: DataChannel?) {
+        }
+
+        override fun onRenegotiationNeeded() {
+        }
+
+        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
+        }
+
+        override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
+        }
+
+        override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
+            if (!isClosed) {
+                Log.i("CALL", "[$userId] $newState")
+                _connectionState.value = newState?.name ?: "UNKNOWN"
+            }
+        }
+
+        override fun onIceConnectionReceivingChange(p0: Boolean) {
+        }
+
+        override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {
+        }
+
+        override fun onTrack(transceiver: RtpTransceiver?) {
+
+            if (!isClosed) {
+                val track = transceiver?.receiver?.track()
+                if (track is AudioTrack) {
+                    track.setEnabled(true)
+                }
+
+                if (track is VideoTrack) {
+                    Log.d("CALL", "Remote video track received")
+                    remoteVideoTrack = track
+                    _remoteVideoTrackFlow.tryEmit(userId to track)
+                }
+            }
+        }
     }
 
 
     fun getEglContext() = eglBase.eglBaseContext
 
     fun startLocalVideo(): VideoTrack? {
-        val peerConnection = peerConnection ?: return null
         val peerConnectionFactory = peerConnectionFactory ?: return null
 
         videoCapturer = createCameraCapture()
@@ -176,70 +268,70 @@ class WebRTCClient
         }
     }
 
-    private val peerConnectionObserver = object : PeerConnection.Observer {
-        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
-
-        override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
-
-        }
-
-
-        override fun onIceConnectionReceivingChange(p0: Boolean) {}
-
-        override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {}
-
-        override fun onIceCandidate(candidate: IceCandidate?) {
-            if (isClosed) return
-            candidate?.let {
-                _iceCandidateFlow.tryEmit(it)
-            }
-        }
-
-        override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
-
-            if (!isClosed) {
-                Log.i("CALL", "onConnectionChange: " + newState?.name)
-                _connectionState.value = newState?.name ?: "UNKNOWN"
-            }
-        }
-
-        override fun onTrack(transceiver: RtpTransceiver?) {
-
-            if (!isClosed) {
-                val track = transceiver?.receiver?.track()
-                if (track is AudioTrack) {
-                    track.setEnabled(true)
-                }
-
-                if (track is VideoTrack) {
-                    Log.d("CALL", "Remote video track received")
-                    remoteVideoTrack = track
-                    _remoteVideoTrackFlow.tryEmit(track)
-                }
-            }
-        }
-
-        override fun onIceCandidatesRemoved(p0: Array<out IceCandidate?>?) {}
-
-        override fun onAddStream(p0: MediaStream?) {}
-
-        override fun onRemoveStream(p0: MediaStream?) {}
-
-        override fun onDataChannel(p0: DataChannel?) {}
-
-        override fun onRenegotiationNeeded() {}
-
-    }
+//    private val peerConnectionObserver = object : PeerConnection.Observer {
+//        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
+//
+//        override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
+//
+//        }
+//
+//
+//        override fun onIceConnectionReceivingChange(p0: Boolean) {}
+//
+//        override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {}
+//
+//        override fun onIceCandidate(candidate: IceCandidate?) {
+//            if (isClosed) return
+//            candidate?.let {
+//                _iceCandidateFlow.tryEmit(it)
+//            }
+//        }
+//
+//        override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
+//
+//            if (!isClosed) {
+//                Log.i("CALL", "onConnectionChange: " + newState?.name)
+//                _connectionState.value = newState?.name ?: "UNKNOWN"
+//            }
+//        }
+//
+//        override fun onTrack(transceiver: RtpTransceiver?) {
+//
+//            if (!isClosed) {
+//                val track = transceiver?.receiver?.track()
+//                if (track is AudioTrack) {
+//                    track.setEnabled(true)
+//                }
+//
+//                if (track is VideoTrack) {
+//                    Log.d("CALL", "Remote video track received")
+//                    remoteVideoTrack = track
+//                    _remoteVideoTrackFlow.tryEmit(track)
+//                }
+//            }
+//        }
+//
+//        override fun onIceCandidatesRemoved(p0: Array<out IceCandidate?>?) {}
+//
+//        override fun onAddStream(p0: MediaStream?) {}
+//
+//        override fun onRemoveStream(p0: MediaStream?) {}
+//
+//        override fun onDataChannel(p0: DataChannel?) {}
+//
+//        override fun onRenegotiationNeeded() {}
+//
+//    }
 
     fun toggleMute(isMuted: Boolean) {
         Log.d("CALL", "MUTE: $isMuted")
         localAudioTrack?.setEnabled(!isMuted)
     }
 
-    fun createOffer(onOfferCreated: (SessionDescription) -> Unit) {
+    fun createOffer(userId: String, onOfferCreated: (SessionDescription) -> Unit) {
 
         if (isClosed) return
-        val pc = peerConnection ?: return
+        val pc = peerConnections[userId] ?: return
 
 
         pc.createOffer(object : SdpObserver {
@@ -258,10 +350,10 @@ class WebRTCClient
         }, MediaConstraints())
     }
 
-    fun createAnswer(onAnswerCreated: (SessionDescription) -> Unit) {
+    fun createAnswer(userId: String, onAnswerCreated: (SessionDescription) -> Unit) {
 
         if (isClosed) return
-        val pc = peerConnection ?: return
+        val pc = peerConnections[userId] ?: return
 
 
         pc.createAnswer(object : SdpObserver {
@@ -281,11 +373,12 @@ class WebRTCClient
     }
 
     fun onRemoteOfferReceived(
+        userId: String,
         offer: String,
         onAnswerCreated: (SessionDescription) -> Unit
     ) {
         if (isClosed) return
-        val pc = peerConnection ?: return
+        val pc = peerConnections[userId] ?: return
 
         val session = SessionDescription(
             SessionDescription.Type.OFFER,
@@ -296,7 +389,7 @@ class WebRTCClient
             override fun onCreateSuccess(p0: SessionDescription?) {}
 
             override fun onSetSuccess() {
-                createAnswer(onAnswerCreated)
+                createAnswer(userId, onAnswerCreated)
             }
 
             override fun onCreateFailure(p0: String?) {}
@@ -306,9 +399,9 @@ class WebRTCClient
         }, session)
     }
 
-    fun onAnswerReceived(answer: String) {
+    fun onAnswerReceived(userId: String, answer: String) {
         if (isClosed) return
-        val pc = peerConnection ?: return
+        val pc = peerConnections[userId] ?: return
 
         val session = SessionDescription(
             SessionDescription.Type.ANSWER,
@@ -327,9 +420,9 @@ class WebRTCClient
         }, session)
     }
 
-    fun addIceCandidate(candidate: IceCandidateModel) {
+    fun addIceCandidate(userId: String, candidate: IceCandidateModel) {
         if (isClosed) return
-        val pc = peerConnection ?: return
+        val pc = peerConnections[userId] ?: return
 
         val ice = IceCandidate(
             candidate.sdpMid,
@@ -345,24 +438,34 @@ class WebRTCClient
         isClosed = true
 
         try {
+            // stop camera
             videoCapturer?.stopCapture()
             videoCapturer?.dispose()
             videoCapturer = null
 
+            // dispose local tracks
             localVideoTrack?.dispose()
             localVideoTrack = null
 
             localAudioTrack?.dispose()
             localAudioTrack = null
 
-            peerConnection?.close()
-            peerConnection?.dispose()
+            val users = peerConnections.keys.toList()
+
+            peerConnections.values.forEach {
+                it.close()
+                it.dispose()
+            }
+
+            peerConnections.clear()
+
+            users.forEach { userId ->
+                _remoteVideoTrackFlow.tryEmit(userId to null)
+            }
         } catch (e: Exception) {
             Log.e("CALL", "Error closing peer connection", e)
         }
-        peerConnection = null
 
-        _remoteVideoTrackFlow.tryEmit(null)
         try {
             peerConnectionFactory?.dispose()
         } catch (e: Exception) {
