@@ -1,7 +1,7 @@
 package com.aarav.chatapplication.webrtc
 
-import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.CallHistoryModel
+import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.IceCandidateModel
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
@@ -12,7 +12,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import org.webrtc.IceCandidate
 import javax.inject.Inject
 
 class SignalingClient
@@ -28,18 +27,28 @@ class SignalingClient
             .await()
     }
 
-    suspend fun sendOffer(callId: String, offer: String) {
+    suspend fun sendOffer(
+        callId: String,
+        receiverId: String,
+        offer: String
+    ) {
         callRef
             .child(callId)
-            .child("offer")
+            .child("offers")
+            .child(receiverId)
             .setValue(offer)
             .await()
     }
 
-    suspend fun sendAnswer(callId: String, answer: String) {
+    suspend fun sendAnswer(
+        callId: String,
+        receiverId: String,
+        answer: String
+    ) {
         callRef
             .child(callId)
-            .child("answer")
+            .child("answers")
+            .child(receiverId)
             .setValue(answer)
             .await()
     }

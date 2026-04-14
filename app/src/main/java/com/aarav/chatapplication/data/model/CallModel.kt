@@ -6,8 +6,8 @@ data class CallModel(
     val callerName: String? = null,
     val receiverId: String = "",
     val participants: List<String> = emptyList(),
-    val offer: String? = null,
-    val answer: String? = null,
+    val offers: Map<String, String> = emptyMap(),
+    val answers: Map<String, String> = emptyMap(),
     val ended: Boolean = false,
     val isBusy: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
