@@ -57,10 +57,10 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
 
-        var currentUserId: String? = firebaseAuth.currentUser?.uid
-
         setContent {
             AppTheme {
+                val context = LocalContext.current
+                var currentUserId by remember { mutableStateOf(firebaseAuth.currentUser?.uid) }
                 val navController = rememberNavController()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -72,7 +72,9 @@ class MainActivity : ComponentActivity() {
                 )
 
                 LaunchedEffect(Unit) {
-                    currentUserId = firebaseAuth.currentUser?.uid
+                    firebaseAuth.addAuthStateListener {
+                        currentUserId = it.currentUser?.uid
+                    }
                 }
 
                 var showCallBanner by remember {
@@ -81,8 +83,6 @@ class MainActivity : ComponentActivity() {
 
 
                 val show = currentRoute in navItems
-
-                val context = LocalContext.current
 
                 val audioPermission = remember {
                     Manifest.permission.RECORD_AUDIO
@@ -210,6 +210,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     if (call != null && callState == "IDLE") {
+                        showCallBanner = true
                         IncomingCallBanner(
                             callerName = if (callInfo?.callerName.isNullOrBlank())
                                 "User"

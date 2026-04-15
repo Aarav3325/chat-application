@@ -39,8 +39,11 @@ class MainVM
                         return@collect
                     }
 
-                    val myOffer = call.offers.get(userId)
-                    val myAnswer = call.answers.get(userId)
+                    val myHandshakeKey = call.offers.keys.find { it.endsWith("_$userId") }
+                    val myOffer = if (myHandshakeKey != null) call.offers[myHandshakeKey] else null
+                    
+                    val myAnswerKey = call.answers.keys.find { it.endsWith("_$userId") }
+                    val myAnswer = if (myAnswerKey != null) call.answers[myAnswerKey] else null
 
                     if (myOffer != null && myAnswer == null) {
 

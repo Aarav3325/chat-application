@@ -92,7 +92,7 @@ class SignalingClient
 
         val listener = object : ChildEventListener {
 
-            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+            private fun handleCall(snapshot: DataSnapshot) {
                 try {
                     val call = snapshot.getValue(CallModel::class.java)
                     if (
@@ -101,16 +101,19 @@ class SignalingClient
                         call.callerId != userId &&
                         !call.ended
                     ) {
-                        Log.d("SIGNALING", "Incoming call detected: ${call.callId}")
                         trySend(call)
                     }
                 } catch (e: Exception) {
-                    Log.e("SIGNALING", "Skipping invalid call data at ${snapshot.key}", e)
+                    Log.e("SIGNALING", "Error parsing call: ${snapshot.key}", e)
                 }
             }
 
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                handleCall(snapshot)
+            }
+
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                // We only care about new calls, not updates to existing ones here.
+                handleCall(snapshot)
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {}
