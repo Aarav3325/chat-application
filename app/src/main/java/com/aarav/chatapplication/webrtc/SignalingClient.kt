@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.webrtc
 
+import android.util.Log
 import com.aarav.chatapplication.data.model.CallHistoryModel
 import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.IceCandidateModel
@@ -65,8 +66,13 @@ class SignalingClient
                     return
                 }
 
-                val call = snapshot.getValue(CallModel::class.java)
-                trySend(call)
+                try {
+                    val call = snapshot.getValue(CallModel::class.java)
+                    trySend(call)
+                } catch (e: Exception) {
+                    Log.e("SIGNALING", "Failed to deserialize call ${snapshot.key}", e)
+                    trySend(null)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -91,14 +97,18 @@ class SignalingClient
 
                 snapshot.children.forEach { child ->
 
-                    val call = child.getValue(CallModel::class.java)
+                    try {
+                        val call = child.getValue(CallModel::class.java)
 
-                    if (
-                        call != null &&
-                        call.participants.contains(userId) &&
-                        call.callerId != userId
-                    ) {
-                        trySend(call)
+                        if (
+                            call != null &&
+                            call.participants.contains(userId) &&
+                            call.callerId != userId
+                        ) {
+                            trySend(call)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SIGNALING", "Skipping invalid call data at ${child.key}", e)
                     }
 
                     /*
