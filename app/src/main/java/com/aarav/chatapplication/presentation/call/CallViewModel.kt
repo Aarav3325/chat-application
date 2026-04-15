@@ -239,9 +239,9 @@ class CallViewModel @Inject constructor(
 
                     //val myOffer = call?.offers?.get(myUserId)
 
-                    call?.offers.orEmpty().forEach { (receiverId, offer) ->
+                    call?.offers.orEmpty().forEach { (handshakeId, offer) ->
 
-                        if (receiverId != myUserId) return@forEach
+                        if (!handshakeId.endsWith("_$myUserId")) return@forEach
 
                         val senderId = offer.senderId
 
@@ -276,15 +276,16 @@ class CallViewModel @Inject constructor(
                         }
                     }
 
-                    call?.answers.orEmpty().forEach { (userId, answer) ->
+                    call?.answers.orEmpty().forEach { (handshakeId, answer) ->
 
-                        if (userId == myUserId) return@forEach
+                        if (!handshakeId.endsWith("_$myUserId")) return@forEach
+                        val senderId = handshakeId.split("_").first()
 
-                        if (!handledAnswers.contains(userId)) {
+                        if (!handledAnswers.contains(senderId)) {
 
-                            handledAnswers.add(userId)
-                            answeredUsers.add(userId)
-                            connectedUsers.add(userId)
+                            handledAnswers.add(senderId)
+                            answeredUsers.add(senderId)
+                            connectedUsers.add(senderId)
 
                             if (!isAnswered) {
                                 isAnswered = true
@@ -293,7 +294,7 @@ class CallViewModel @Inject constructor(
 
                             callStateManager.updateState("CONNECTING")
 
-                            webRTCClient.onAnswerReceived(userId, answer)
+                            webRTCClient.onAnswerReceived(senderId, answer)
                         }
                     }
                 }

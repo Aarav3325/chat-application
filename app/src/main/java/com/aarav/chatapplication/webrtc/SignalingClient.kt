@@ -37,20 +37,21 @@ class SignalingClient
         callRef
             .child(callId)
             .child("offers")
-            .child(receiverId)
+            .child("${offer.senderId}_$receiverId")
             .setValue(offer)
             .await()
     }
 
     suspend fun sendAnswer(
         callId: String,
+        senderId: String,
         receiverId: String,
         answer: String
     ) {
         callRef
             .child(callId)
             .child("answers")
-            .child(receiverId)
+            .child("${senderId}_$receiverId")
             .setValue(answer)
             .await()
     }
