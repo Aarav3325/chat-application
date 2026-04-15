@@ -31,7 +31,7 @@ class ChatViewModel
     val userRepository: UserRepository,
     val messageRepository: MessageRepository,
     val typingRepository: TypingRepository,
-    val presenceRepository: PresenceRepository
+    val presenceRepository: PresenceRepository,
 ) : ViewModel() {
 
     private var _uiState: MutableStateFlow<ChatUiState> = MutableStateFlow(ChatUiState())
@@ -189,6 +189,7 @@ class ChatViewModel
                 }
         }
     }
+
 
     fun isChatCreated(chatId: String, userId: String) {
         viewModelScope.launch {

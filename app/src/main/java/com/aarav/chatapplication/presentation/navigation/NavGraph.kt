@@ -38,7 +38,7 @@ fun NavGraph(
         startDestination = if (isLoggedIn) NavRoute.Home.path else NavRoute.Auth.path
     ) {
         addHomeScreen(navHostController, this, callViewModel)
-        addChatScreen(navHostController, this, userId ?: "")
+        addChatScreen(navHostController, this, userId ?: "", callViewModel)
         addGroupChatScreen(navHostController, this, callViewModel)
         addCreateGroupScreen(navHostController, this)
         addCallScreen(navHostController, this, callViewModel)
@@ -120,7 +120,7 @@ fun addProfileScreen(navController: NavController, navGraphBuilder: NavGraphBuil
     }
 }
 
-fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, userId: String) {
+fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, userId: String, callViewModel: CallViewModel) {
     navGraphBuilder.composable(
         route = NavRoute.Chat.path.plus("/{receiverId}/{userId}/{currentUsername}"),
         arguments =
@@ -165,7 +165,8 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
                     )
                 )
             },
-            chatViewModel = hiltViewModel()
+            chatViewModel = hiltViewModel(),
+            callViewModel = callViewModel
         )
     }
 }

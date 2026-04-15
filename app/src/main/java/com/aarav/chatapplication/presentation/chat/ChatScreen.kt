@@ -54,7 +54,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.Message
+import com.aarav.chatapplication.presentation.call.CallViewModel
 import com.aarav.chatapplication.presentation.components.MessageStatusIcon
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.presentation.home.ChatViewModel
@@ -73,7 +75,8 @@ fun ChatScreen(
     currentUsername: String,
     back: () -> Unit,
     navigateToCall: () -> Unit,
-    chatViewModel: ChatViewModel
+    chatViewModel: ChatViewModel,
+    callViewModel: CallViewModel
 ) {
 
     val uiState by chatViewModel.uiState.collectAsState()
@@ -228,6 +231,18 @@ fun ChatScreen(
                         IconButton(
                             onClick = {
                                 navigateToCall()
+
+                                val call = CallModel(
+                                    callId = chatId,
+                                    callerId = myId,
+                                    callerName = currentUsername,
+                                    participants = listOf(otherUserId),
+                                )
+
+                                callViewModel.startCall(
+                                    call,
+                                    myId
+                                )
                             },
                             modifier = Modifier
                         ) {
