@@ -21,6 +21,8 @@ import kotlinx.coroutines.launch
 import org.webrtc.VideoTrack
 import javax.inject.Inject
 
+private const val TAG = "MESH"
+
 @HiltViewModel
 class CallViewModel @Inject constructor(
     private val signalingClient: SignalingClient,
@@ -32,8 +34,7 @@ class CallViewModel @Inject constructor(
 
     private val handledOfferKeys = mutableSetOf<String>()
     private val handledAnswerKeys = mutableSetOf<String>()
-
-    private val negotiatedPeers = mutableSetOf<String>()
+    private val peerCreated = mutableSetOf<String>()
 
     private var timerStarted = false
 
@@ -77,7 +78,7 @@ class CallViewModel @Inject constructor(
         connectionJob = viewModelScope.launch {
             webRTCClient.connectionState.collect { state ->
                 if (!isEnding) {
-                    Log.d("CONNECTION", "STATE: $state")
+                    Log.d(TAG, "WebRTC connection state -> $state")
                     when (state) {
                         "CONNECTED" -> {
                             callStateManager.updateState("CONNECTED")
@@ -103,6 +104,8 @@ class CallViewModel @Inject constructor(
         activeCallerId = call.callerId
         activeReceiverId = call.participants.firstOrNull { it != myUserId } ?: ""
 
+        Log.d(TAG, "[$myUserId] STARTING CALL ${call.callId} | participants=${call.participants}")
+
         callStateManager.updateState("CALLING")
 
         viewModelScope.launch {
@@ -113,7 +116,8 @@ class CallViewModel @Inject constructor(
             signalingClient.createCall(call)
 
             val others = call.participants.filter { it != myUserId }
-            others.forEach { userId -> initiateOfferTo(call.callId, userId) }
+            Log.d(TAG, "[$myUserId] Will send offers to: $others")
+            others.forEach { userId -> sendOfferTo(call.callId, userId) }
 
             startObservers(call.callId)
         }
@@ -137,6 +141,8 @@ class CallViewModel @Inject constructor(
         callStateManager.activeCallId = callId
         activeReceiverId = myUserId
 
+        Log.d(TAG, "[$myUserId] RECEIVING CALL $callId")
+
         callStateManager.updateState("RECEIVING")
 
         viewModelScope.launch {
@@ -150,7 +156,7 @@ class CallViewModel @Inject constructor(
     private fun resetState() {
         handledOfferKeys.clear()
         handledAnswerKeys.clear()
-        negotiatedPeers.clear()
+        peerCreated.clear()
         isAnswered = false
         isEnding = false
         timerStarted = false
@@ -158,22 +164,26 @@ class CallViewModel @Inject constructor(
         _isMuted.value = false
         _callEnded.value = false
         timerJob?.cancel()
-        webRTCClient.ensureAudioEnabled()
     }
 
-    private fun initiateOfferTo(callId: String, userId: String) {
-        if (!negotiatedPeers.add(userId)) return
+    private fun ensurePeerConnection(userId: String) {
+        if (peerCreated.add(userId)) {
+            Log.d(TAG, "[$myUserId] Creating PeerConnection for $userId")
+            webRTCClient.createPeerConnection(userId)
+        }
+    }
 
-        webRTCClient.createPeerConnection(userId)
+    private fun sendOfferTo(callId: String, userId: String) {
+        ensurePeerConnection(userId)
+        Log.d(TAG, "[$myUserId] Creating & sending OFFER → $userId")
         webRTCClient.createOffer(userId) { sdp ->
             viewModelScope.launch {
                 if (!isEnding) {
-                    Log.d("SIGNALING", "Sending offer from $myUserId to $userId")
                     signalingClient.sendOffer(
-                        callId,
-                        userId,
+                        callId, userId,
                         OfferModel(sdp.description, myUserId)
                     )
+                    Log.d(TAG, "[$myUserId] OFFER sent → $userId (Firebase key: ${myUserId}_$userId)")
                 }
             }
         }
@@ -188,46 +198,43 @@ class CallViewModel @Inject constructor(
             signalingClient.listenForCall(callId).collect { call ->
                 if (isEnding) return@collect
                 if (call == null) {
-                    finishCall(callId, "ENDED")
+                    Log.w(TAG, "[$myUserId] Call data is null — call may have been deleted")
                     return@collect
                 }
 
                 if (activeCallerId.isEmpty()) activeCallerId = call.callerId
 
                 if (call.ended) {
-                    if (call.isBusy) {
-                        finishCall(call.callId, "BUSY")
-                    } else if (!isAnswered && isCaller) {
-                        finishCall(call.callId, "REJECTED")
-                    } else {
-                        finishCall(call.callId, "ENDED")
+                    Log.d(TAG, "[$myUserId] Call ended flag detected")
+                    when {
+                        call.isBusy -> finishCall(call.callId, "BUSY")
+                        !isAnswered && isCaller -> finishCall(call.callId, "REJECTED")
+                        else -> finishCall(call.callId, "ENDED")
                     }
                     return@collect
                 }
 
-                val stalePeers = negotiatedPeers.filter { it !in call.participants }.toSet()
-                stalePeers.forEach { stalePeerId ->
-                    webRTCClient.removePeerConnection(stalePeerId)
-                    negotiatedPeers.remove(stalePeerId)
-                }
-
+                // ── MESH: discover new participants and decide who offers ──
                 call.participants.forEach { peerId ->
                     if (peerId == myUserId) return@forEach
-                    if (negotiatedPeers.contains(peerId)) return@forEach
+                    if (peerCreated.contains(peerId)) return@forEach
 
-                    val shouldIOffer = myUserId < peerId
-                    if (shouldIOffer) {
-                        initiateOfferTo(callId, peerId)
+                    val iAmInitiator = isCaller || myUserId < peerId
+                    if (iAmInitiator) {
+                        Log.d(TAG, "[$myUserId] Mesh: I should offer to $peerId (isCaller=$isCaller, myId<peerId=${myUserId < peerId})")
+                        sendOfferTo(callId, peerId)
+                    } else {
+                        Log.d(TAG, "[$myUserId] Mesh: waiting for $peerId to offer to me")
                     }
                 }
 
+                // ── OFFERS: process offers addressed to me ──
                 call.offers.forEach { (key, offer) ->
                     if (!key.endsWith("_$myUserId")) return@forEach
-                    if (handledOfferKeys.contains(key)) return@forEach
-                    handledOfferKeys.add(key)
+                    if (!handledOfferKeys.add(key)) return@forEach
 
                     val senderId = offer.senderId
-                    Log.d("SIGNALING", "Processing offer from $senderId to me ($myUserId)")
+                    Log.d(TAG, "[$myUserId] ◀ OFFER received from $senderId (key=$key)")
 
                     if (!isAnswered) {
                         isAnswered = true
@@ -235,38 +242,36 @@ class CallViewModel @Inject constructor(
                     }
                     callStateManager.updateState("CONNECTING")
 
-                    if (!negotiatedPeers.contains(senderId)) {
-                        negotiatedPeers.add(senderId)
-                        webRTCClient.createPeerConnection(senderId)
-                    }
+                    ensurePeerConnection(senderId)
 
                     webRTCClient.onRemoteOfferReceived(senderId, offer.sdp) { answer ->
                         viewModelScope.launch {
                             if (!isEnding) {
-                                Log.d("SIGNALING", "Sending answer from $myUserId to $senderId")
                                 signalingClient.sendAnswer(callId, myUserId, senderId, answer.description)
+                                Log.d(TAG, "[$myUserId] ANSWER sent → $senderId (key: ${myUserId}_$senderId)")
                             }
                         }
                     }
                 }
 
+                // ── ANSWERS: process answers addressed to me ──
                 call.answers.forEach { (key, answer) ->
                     if (!key.endsWith("_$myUserId")) return@forEach
-                    if (handledAnswerKeys.contains(key)) return@forEach
-                    handledAnswerKeys.add(key)
+                    if (!handledAnswerKeys.add(key)) return@forEach
 
                     val senderId = key.removeSuffix("_$myUserId")
-                    Log.d("SIGNALING", "Processing answer from $senderId to me ($myUserId)")
+                    Log.d(TAG, "[$myUserId] ◀ ANSWER received from $senderId (key=$key)")
 
                     if (!isAnswered) {
                         isAnswered = true
                         timeoutJob?.cancel()
                     }
                     callStateManager.updateState("CONNECTING")
-                    negotiatedPeers.add(senderId)
-                    webRTCClient.createPeerConnection(senderId)
                     webRTCClient.onAnswerReceived(senderId, answer)
                 }
+
+                // Log summary
+                Log.d(TAG, "[$myUserId] Status: peers=${peerCreated.toList()}, offers=${handledOfferKeys.toList()}, answers=${handledAnswerKeys.toList()}")
             }
         }
 
@@ -274,8 +279,7 @@ class CallViewModel @Inject constructor(
             webRTCClient.iceCandidateFlow.collect { (candidate, userId) ->
                 if (!isEnding) {
                     signalingClient.sendICECandidate(
-                        callId,
-                        userId,
+                        callId, userId,
                         IceCandidateModel(
                             sdp = candidate.sdp,
                             sdpMid = candidate.sdpMid,
@@ -342,25 +346,19 @@ class CallViewModel @Inject constructor(
                 )
                 _callEnded.value = true
             } catch (e: Exception) {
-                Log.e("CALL", "Error ending call", e)
+                Log.e(TAG, "Error ending call", e)
             }
 
             _events.trySend(UiEvent.EndCall)
             _callEnded.value = true
 
-            signalingJob?.cancel()
-            signalingJob = null
-            iceOutgoingJob?.cancel()
-            iceOutgoingJob = null
-            iceIncomingJob?.cancel()
-            iceIncomingJob = null
-            timerJob?.cancel()
-            timerJob = null
+            signalingJob?.cancel(); signalingJob = null
+            iceOutgoingJob?.cancel(); iceOutgoingJob = null
+            iceIncomingJob?.cancel(); iceIncomingJob = null
+            timerJob?.cancel(); timerJob = null
 
             delay(1000)
-            if (isCaller) {
-                signalingClient.cleanupCallData(callId)
-            }
+            signalingClient.cleanupCallData(callId)
             activeCallId = null
             callStateManager.updateState("IDLE")
             isEnding = false
@@ -385,21 +383,14 @@ class CallViewModel @Inject constructor(
             _events.trySend(UiEvent.EndCall)
             _callEnded.value = true
 
-            signalingJob?.cancel()
-            signalingJob = null
-            iceOutgoingJob?.cancel()
-            iceOutgoingJob = null
-            iceIncomingJob?.cancel()
-            iceIncomingJob = null
-            timerJob?.cancel()
-            timerJob = null
-            timeoutJob?.cancel()
-            timeoutJob = null
+            signalingJob?.cancel(); signalingJob = null
+            iceOutgoingJob?.cancel(); iceOutgoingJob = null
+            iceIncomingJob?.cancel(); iceIncomingJob = null
+            timerJob?.cancel(); timerJob = null
+            timeoutJob?.cancel(); timeoutJob = null
 
             delay(1000)
-            if (isCaller) {
-                signalingClient.cleanupCallData(callId)
-            }
+            signalingClient.cleanupCallData(callId)
             activeCallId = null
             callStateManager.updateState("IDLE")
             isEnding = false
@@ -420,14 +411,14 @@ class CallViewModel @Inject constructor(
             try {
                 signalingClient.saveCallHistory(history)
             } catch (e: Exception) {
-                Log.e("CALL", "Failed to save history", e)
+                Log.e(TAG, "Failed to save history", e)
             }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d("MYTAG", "callvm cleared")
+        Log.d(TAG, "callvm cleared")
     }
 }
 

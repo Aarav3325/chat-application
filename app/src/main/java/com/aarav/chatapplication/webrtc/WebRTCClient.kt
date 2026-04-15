@@ -129,23 +129,24 @@ class WebRTCClient
     }
 
     fun createPeerConnection(userId: String) {
-
-
-        val factory = peerConnectionFactory ?: return
-
-        if (peerConnections.containsKey(userId)) return
-
-        if (localAudioTrack == null || localVideoTrack == null) {
-            Log.e("CALL", "Tracks not ready — skipping PC creation for $userId")
+        val factory = peerConnectionFactory ?: run {
+            Log.e("MESH", "createPeerConnection: factory is null!")
             return
         }
 
+        if (peerConnections.containsKey(userId)) {
+            Log.d("MESH", "PC already exists for $userId — skipping")
+            return
+        }
+
+        if (localAudioTrack == null || localVideoTrack == null) {
+            Log.e("MESH", "Tracks not ready — skipping PC creation for $userId (audio=${localAudioTrack != null}, video=${localVideoTrack != null})")
+            return
+        }
 
         val iceServers = listOf(
-            // STUN
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302")
                 .createIceServer(),
-            // TURN
             PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
                 .setUsername("openrelayproject")
                 .setPassword("openrelayproject")
@@ -155,19 +156,19 @@ class WebRTCClient
         val pc = factory.createPeerConnection(
             iceServers,
             createObserver(userId)
-        ) ?: return
+        ) ?: run {
+            Log.e("MESH", "factory.createPeerConnection returned null for $userId")
+            return
+        }
 
         val streamIds = listOf("ARDAMS")
-
         localAudioTrack?.let { pc.addTrack(it, streamIds) }
         localVideoTrack?.let { pc.addTrack(it, streamIds) }
         localAudioTrack?.setEnabled(true)
 
-
         peerConnections[userId] = pc
         remoteDescriptionSet.remove(userId)
-        Log.d("CALL", "Creating PC for $userId")
-
+        Log.d("MESH", "✓ PeerConnection CREATED for $userId (total PCs: ${peerConnections.size})")
     }
 
     private fun createObserver(userId: String) = object : PeerConnection.Observer {
@@ -186,7 +187,7 @@ class WebRTCClient
         override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {}
 
         override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
-            Log.i("CALL", "[$userId] Connection state: $newState")
+            Log.i("MESH", "[$userId] PeerConnection state → $newState")
             when (newState) {
                 PeerConnection.PeerConnectionState.CONNECTED -> {
                     _connectionState.value = "CONNECTED"
@@ -194,7 +195,7 @@ class WebRTCClient
                 }
                 PeerConnection.PeerConnectionState.CONNECTING -> _connectionState.value = "CONNECTING"
                 PeerConnection.PeerConnectionState.FAILED -> {
-                    Log.e("CALL", "[$userId] PeerConnection FAILED")
+                    Log.e("MESH", "[$userId] PeerConnection FAILED — check ICE/TURN servers")
                     _connectionState.value = "FAILED"
                 }
                 PeerConnection.PeerConnectionState.DISCONNECTED -> _connectionState.value = "DISCONNECTED"
@@ -215,18 +216,18 @@ class WebRTCClient
 
         override fun onTrack(transceiver: RtpTransceiver?) {
             val track = transceiver?.receiver?.track()
+            Log.d("MESH", "[$userId] onTrack: ${track?.kind()} (id=${track?.id()})")
             if (track is AudioTrack) {
                 track.setEnabled(true)
                 track.setVolume(10.0)
                 remoteAudioTracks[userId] = track
-                Log.d("CALL", "Remote audio track received and enabled for $userId")
+                Log.d("MESH", "[$userId] ✓ Remote AUDIO track enabled (total audio: ${remoteAudioTracks.size})")
             }
             if (track is VideoTrack) {
-                Log.d("CALL", "Remote video track received for $userId")
-                _allTracks.value =
-                    _allTracks.value.toMutableMap().apply {
-                        put(userId, track)
-                    }
+                _allTracks.value = _allTracks.value.toMutableMap().apply {
+                    put(userId, track)
+                }
+                Log.d("MESH", "[$userId] ✓ Remote VIDEO track added (total videos: ${_allTracks.value.size})")
             }
         }
     }
@@ -344,9 +345,12 @@ class WebRTCClient
             createPeerConnection(userId)
         }
 
-        val pc = peerConnections[userId] ?: return
+        val pc = peerConnections[userId] ?: run {
+            Log.e("MESH", "createOffer: No PC for $userId")
+            return
+        }
 
-        Log.d("CALL", "create offer for $userId")
+        Log.d("MESH", "createOffer for $userId")
 
         val constraints = MediaConstraints().apply {
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
@@ -354,15 +358,22 @@ class WebRTCClient
         }
         pc.createOffer(object : SdpObserver {
             override fun onCreateSuccess(sdp: SessionDescription) {
+                Log.d("MESH", "Offer SDP created for $userId")
                 pc.setLocalDescription(this, sdp)
                 onOfferCreated(sdp)
             }
 
-            override fun onSetSuccess() {}
+            override fun onSetSuccess() {
+                Log.d("MESH", "Local description set for offer → $userId")
+            }
 
-            override fun onCreateFailure(p0: String?) {}
+            override fun onCreateFailure(p0: String?) {
+                Log.e("MESH", "FAILED to create offer for $userId: $p0")
+            }
 
-            override fun onSetFailure(p0: String?) {}
+            override fun onSetFailure(p0: String?) {
+                Log.e("MESH", "FAILED to set local desc (offer) for $userId: $p0")
+            }
 
         }, constraints)
     }
@@ -373,7 +384,10 @@ class WebRTCClient
             createPeerConnection(userId)
         }
 
-        val pc = peerConnections[userId] ?: return
+        val pc = peerConnections[userId] ?: run {
+            Log.e("MESH", "createAnswer: No PC for $userId")
+            return
+        }
 
         val constraints = MediaConstraints().apply {
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
@@ -381,15 +395,22 @@ class WebRTCClient
         }
         pc.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(sdp: SessionDescription) {
+                Log.d("MESH", "Answer SDP created for $userId")
                 pc.setLocalDescription(this, sdp)
                 onAnswerCreated(sdp)
             }
 
-            override fun onSetSuccess() {}
+            override fun onSetSuccess() {
+                Log.d("MESH", "Local description set for answer → $userId")
+            }
 
-            override fun onCreateFailure(p0: String?) {}
+            override fun onCreateFailure(p0: String?) {
+                Log.e("MESH", "FAILED to create answer for $userId: $p0")
+            }
 
-            override fun onSetFailure(p0: String?) {}
+            override fun onSetFailure(p0: String?) {
+                Log.e("MESH", "FAILED to set local desc (answer) for $userId: $p0")
+            }
 
         }, constraints)
     }
@@ -403,7 +424,12 @@ class WebRTCClient
             createPeerConnection(userId)
         }
 
-        val pc = peerConnections[userId] ?: return
+        val pc = peerConnections[userId] ?: run {
+            Log.e("MESH", "onRemoteOfferReceived: No PC for $userId")
+            return
+        }
+
+        Log.d("MESH", "Setting remote offer from $userId")
 
         val session = SessionDescription(
             SessionDescription.Type.OFFER,
@@ -414,14 +440,19 @@ class WebRTCClient
             override fun onCreateSuccess(p0: SessionDescription?) {}
 
             override fun onSetSuccess() {
+                Log.d("MESH", "Remote offer set SUCCESS for $userId → creating answer")
                 remoteDescriptionSet.add(userId)
                 applyBufferedIceCandidates(userId)
                 createAnswer(userId, onAnswerCreated)
             }
 
-            override fun onCreateFailure(p0: String?) {}
+            override fun onCreateFailure(p0: String?) {
+                Log.e("MESH", "FAILED create (remote offer) for $userId: $p0")
+            }
 
-            override fun onSetFailure(p0: String?) {}
+            override fun onSetFailure(p0: String?) {
+                Log.e("MESH", "FAILED to set remote offer for $userId: $p0")
+            }
 
         }, session)
     }
@@ -431,7 +462,12 @@ class WebRTCClient
             createPeerConnection(userId)
         }
 
-        val pc = peerConnections[userId] ?: return
+        val pc = peerConnections[userId] ?: run {
+            Log.e("MESH", "onAnswerReceived: No PC for $userId")
+            return
+        }
+
+        Log.d("MESH", "Setting remote answer from $userId")
 
         val session = SessionDescription(
             SessionDescription.Type.ANSWER,
@@ -442,13 +478,18 @@ class WebRTCClient
             override fun onCreateSuccess(p0: SessionDescription?) {}
 
             override fun onSetSuccess() {
+                Log.d("MESH", "Remote answer set SUCCESS for $userId → connection should start")
                 remoteDescriptionSet.add(userId)
                 applyBufferedIceCandidates(userId)
             }
 
-            override fun onCreateFailure(p0: String?) {}
+            override fun onCreateFailure(p0: String?) {
+                Log.e("MESH", "FAILED create (remote answer) for $userId: $p0")
+            }
 
-            override fun onSetFailure(p0: String?) {}
+            override fun onSetFailure(p0: String?) {
+                Log.e("MESH", "FAILED to set remote answer for $userId: $p0")
+            }
 
         }, session)
     }

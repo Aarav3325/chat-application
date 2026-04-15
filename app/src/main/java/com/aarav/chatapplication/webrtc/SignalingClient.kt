@@ -69,9 +69,12 @@ class SignalingClient
 
                 try {
                     val call = snapshot.getValue(CallModel::class.java)
+                    if (call != null) {
+                        Log.d("MESH", "Firebase update: offers=${call.offers.keys}, answers=${call.answers.keys}, participants=${call.participants}, ended=${call.ended}")
+                    }
                     trySend(call)
                 } catch (e: Exception) {
-                    Log.e("SIGNALING", "Failed to deserialize call ${snapshot.key}", e)
+                    Log.e("MESH", "FAILED to deserialize call ${snapshot.key}", e)
                     trySend(null)
                 }
             }

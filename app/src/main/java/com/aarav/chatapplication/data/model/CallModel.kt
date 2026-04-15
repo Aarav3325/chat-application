@@ -1,5 +1,8 @@
 package com.aarav.chatapplication.data.model
 
+import com.google.firebase.database.IgnoreExtraProperties
+
+@IgnoreExtraProperties
 data class CallModel(
     val callId: String = "",
     val callerId: String = "",
