@@ -207,7 +207,7 @@ fun GroupChatScreen(
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         .weight(1f)
                 ) {
-                    items(uiState.messages) { message ->
+                    items(uiState.messages, key = { it.messageId }) { message ->
                         val isMine = message.senderId == myId
                         GroupChatCard(message, isMine)
                     }

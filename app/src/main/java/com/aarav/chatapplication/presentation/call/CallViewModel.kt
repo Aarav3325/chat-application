@@ -65,7 +65,7 @@ class CallViewModel @Inject constructor(
     private val _events = Channel<UiEvent>()
     val events = _events.receiveAsFlow()
 
-    val remoteVideoTrack = webRTCClient.remoteVideoTrackFlow
+    val tracks = webRTCClient.allTracks
     private val _localVideoTrack = MutableStateFlow<VideoTrack?>(null)
     val localVideoTrack = _localVideoTrack.asStateFlow()
 

@@ -43,10 +43,10 @@ class WebRTCClient
     )
     val iceCandidateFlow = _iceCandidateFlow.asSharedFlow()
 
-    private val _remoteVideoTrackFlow = MutableSharedFlow<Pair<String, VideoTrack?>>(
-        replay = 1
-    )
-    val remoteVideoTrackFlow = _remoteVideoTrackFlow.asSharedFlow()
+    private val _allTracks =
+        MutableStateFlow<Map<String, VideoTrack>>(emptyMap())
+
+    val allTracks = _allTracks.asStateFlow()
 
     private val _connectionState = MutableStateFlow("NEW")
     val connectionState = _connectionState.asStateFlow()
@@ -148,7 +148,14 @@ class WebRTCClient
         val streamIds = listOf("ARDAMS")
 
         localAudioTrack?.let { pc.addTrack(it, streamIds) }
-        localVideoTrack?.let { pc.addTrack(it, streamIds) }
+        localVideoTrack?.let {
+            pc.addTrack(it, streamIds)
+            _allTracks.value =
+                _allTracks.value.toMutableMap().apply {
+                    put(userId, it)
+                }
+        }
+
 
         peerConnections[userId] = pc
         Log.d("CALL", "Creating PC for $userId")
@@ -208,8 +215,13 @@ class WebRTCClient
 
                 if (track is VideoTrack) {
                     Log.d("CALL", "Remote video track received")
-                    remoteVideoTrack = track
-                    _remoteVideoTrackFlow.tryEmit(userId to track)
+                    //remoteVideoTrack = track
+                    val userId = userId
+
+                    _allTracks.value =
+                        _allTracks.value.toMutableMap().apply {
+                            put(userId, track)
+                        }
                 }
             }
         }
@@ -306,7 +318,7 @@ class WebRTCClient
 //                if (track is VideoTrack) {
 //                    Log.d("CALL", "Remote video track received")
 //                    remoteVideoTrack = track
-//                    _remoteVideoTrackFlow.tryEmit(track)
+//                    _allTracks.tryEmit(track)
 //                }
 //            }
 //        }
@@ -460,7 +472,10 @@ class WebRTCClient
             peerConnections.clear()
 
             users.forEach { userId ->
-                _remoteVideoTrackFlow.tryEmit(userId to null)
+                _allTracks.value =
+                    _allTracks.value.toMutableMap().apply {
+                        remove(userId)
+                    }
             }
         } catch (e: Exception) {
             Log.e("CALL", "Error closing peer connection", e)

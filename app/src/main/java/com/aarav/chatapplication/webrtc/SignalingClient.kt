@@ -204,7 +204,7 @@ class SignalingClient
     }
 
     suspend fun saveCallHistory(history: CallHistoryModel) {
-        val rootRef = firebaseDatabase.reference.child("callHistory").push()
+        val rootRef = firebaseDatabase.reference.child("call_history").push()
         val generatedId = rootRef.key ?: ""
         rootRef.setValue(history.copy(historyId = generatedId)).await()
     }

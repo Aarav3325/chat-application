@@ -10,24 +10,25 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
-import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateValueAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -41,7 +42,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -54,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -68,7 +67,9 @@ import com.aarav.chatapplication.R
 import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.utils.formatTime
 import kotlinx.coroutines.delay
+import org.webrtc.EglBase
 import org.webrtc.SurfaceViewRenderer
+import org.webrtc.VideoTrack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,15 +85,21 @@ fun CallScreen(
 
     val context = LocalContext.current
 
-    val localView = remember {
-        SurfaceViewRenderer(context)
-    }
+//    val localView = remember {
+//        SurfaceViewRenderer(context)
+//    }
+//
+//    val remoteView = remember {
+//        SurfaceViewRenderer(context)
+//    }
 
-    val remoteView = remember {
-        SurfaceViewRenderer(context)
+    val eglBaseContext = remember {
+        viewModel.getEglContext()
     }
 
     val state by viewModel.callState.collectAsState()
+
+    val tracks by viewModel.tracks.collectAsState()
 
     val callEnded by viewModel.callEnded.collectAsState()
     val isMuted by viewModel.isMuted.collectAsState()
@@ -125,21 +132,23 @@ fun CallScreen(
             .build()
     } else null
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        audioManager.requestAudioFocus(focusRequest!!)
-    } else {
-        audioManager.requestAudioFocus(
-            null,
-            AudioManager.STREAM_VOICE_CALL,
-            AudioManager.AUDIOFOCUS_GAIN
-        )
-    }
+
 
     LaunchedEffect(callId) {
 
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         audioManager.isSpeakerphoneOn = true
         audioManager.isMicrophoneMute = false
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.requestAudioFocus(focusRequest!!)
+        } else {
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_VOICE_CALL,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+        }
 
         if (isCaller) {
             viewModel.startCall(
@@ -148,41 +157,42 @@ fun CallScreen(
                     callerId = callerId,
                     receiverId = receiverId,
                     callerName = callerName
-                )
+                ),
+                callerId
             )
         } else {
-            viewModel.receiveCall(callId)
+            viewModel.receiveCall(callId, receiverId)
         }
     }
 
-    LaunchedEffect(Unit) {
-        val eglContext = viewModel.getEglContext()
+//    LaunchedEffect(Unit) {
+//        val eglContext = viewModel.getEglContext()
+//
+//        remoteView.init(eglContext, null)
+//        remoteView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+//        remoteView.setZOrderOnTop(true)
+//        remoteView.setZOrderMediaOverlay(true)
+//        remoteView.setEnableHardwareScaler(true)
+//        remoteView.setZOrderMediaOverlay(false)
+//
+//        localView.init(eglContext, null)
+//        localView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+//        localView.setZOrderMediaOverlay(true)
+//        localView.setEnableHardwareScaler(true)
+//        localView.setZOrderMediaOverlay(true)
+//
+//        remoteView.setMirror(false)
+//        localView.setMirror(true)
+//    }
 
-        remoteView.init(eglContext, null)
-        remoteView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        remoteView.setZOrderOnTop(true)
-        remoteView.setZOrderMediaOverlay(true)
-        remoteView.setEnableHardwareScaler(true)
-        remoteView.setZOrderMediaOverlay(false)
-
-        localView.init(eglContext, null)
-        localView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        localView.setZOrderMediaOverlay(true)
-        localView.setEnableHardwareScaler(true)
-        localView.setZOrderMediaOverlay(true)
-
-        remoteView.setMirror(false)
-        localView.setMirror(true)
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.localVideoTrack.collect { track ->
-            track?.let {
-                it.setEnabled(true)
-                it.addSink(localView)
-            }
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        viewModel.localVideoTrack.collect { track ->
+//            track?.let {
+//                it.setEnabled(true)
+//                it.addSink(localView)
+//            }
+//        }
+//    }
 //    LaunchedEffect(state) {
 //
 //    }
@@ -200,29 +210,29 @@ fun CallScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.remoteVideoTrack.collect { track ->
+//    LaunchedEffect(Unit) {
+//        viewModel.remoteVideoTrack.collect { track ->
+//
+//
+//            if (track == null) {
+//                remoteView.clearImage()
+//                return@collect
+//            }
+//
+//            videoReady = true
+//
+//            Log.d("CALL", "remote $track")
+//            track.setEnabled(true)
+//            track.addSink(remoteView)
+//        }
+//    }
 
-
-            if (track == null) {
-                remoteView.clearImage()
-                return@collect
-            }
-
-            videoReady = true
-
-            Log.d("CALL", "remote $track")
-            track.setEnabled(true)
-            track.addSink(remoteView)
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            remoteView.release()
-            localView.release()
-        }
-    }
+//    DisposableEffect(Unit) {
+//        onDispose {
+//            remoteView.release()
+//            localView.release()
+//        }
+//    }
 
     LaunchedEffect(Unit) {
 
@@ -255,82 +265,43 @@ fun CallScreen(
                 .fillMaxSize()
                 .padding(it)
         ) {
+            val myUserId = if (isCaller) callerId else receiverId
 
-
-
-            AndroidView(
-                factory = { remoteView },
-                modifier = Modifier.fillMaxSize()
-                    .alpha(videoAlpha)
+            VideoGrid(
+                tracks,
+                myUserId,
+                context,
+                eglBaseContext
             )
 
-            if (!videoReady) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(callerName, color = Color.White, fontSize = 22.sp)
-                }
-            }
 
-            AndroidView(
-                factory = { localView },
-                modifier = Modifier
-                    .padding(top = 78.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .size(120.dp)
-                    .align(Alignment.TopEnd)
-                    .padding(horizontal = 16.dp)
-            )
 
-//        Column() {
-//            Text(
-//                text = when (state) {
-//                    "CALLING" -> "Calling..."
-//                    "RECEIVING" -> "Receiving Call..."
-//                    "CONNECTING" -> "Connecting..."
-//                    "CONNECTED" -> "Connected"
-//                    "DISCONNECTED" -> "Disconnected"
-//                    "FAILED" -> "Failed"
-//                    "CLOSED" -> "Call Ended"
-//                    "ENDED" -> "Call Ended"
-//                    else -> "Initializing..."
-//                }
+//            AndroidView(
+//                factory = { remoteView },
+//                modifier = Modifier.fillMaxSize()
+//                    .alpha(videoAlpha)
 //            )
 //
-//            Spacer(modifier = Modifier.height(20.dp))
-//
-//            if (!callEnded && state == "CONNECTED") {
-//                Text("Time: ${time}s")
-//            }
-//        }
-
-
-//        Row(
-//            horizontalArrangement = Arrangement.SpaceEvenly,
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            Button(onClick = {
-//                viewModel.toggleMute()
-//            }) {
-//                Text(if (isMuted) "Unmute" else "Mute")
+//            if (!videoReady) {
+//                Box(
+//                    modifier = Modifier
+//                        .fillMaxSize()
+//                        .background(Color.Black),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    Text(callerName, color = Color.White, fontSize = 22.sp)
+//                }
 //            }
 //
-//            Button(onClick = {
-//                isSpeakerOn = !isSpeakerOn
-//                audioManager.isSpeakerphoneOn = isSpeakerOn
-//            }) {
-//                Text(if (isSpeakerOn) "Speaker ON" else "Speaker OFF")
-//            }
-//
-//            Button(onClick = {
-//                viewModel.endCall(callId)
-//            }) {
-//                Text("End Call")
-//            }
-//        }
+//            AndroidView(
+//                factory = { localView },
+//                modifier = Modifier
+//                    .padding(top = 78.dp)
+//                    .clip(RoundedCornerShape(16.dp))
+//                    .size(120.dp)
+//                    .align(Alignment.TopEnd)
+//                    .padding(horizontal = 16.dp)
+//            )
 
             Box(
                 modifier = Modifier
@@ -339,32 +310,10 @@ fun CallScreen(
                     .background(Color.Transparent) // optional blur feel
                     .padding(horizontal = 12.dp, vertical = 12.dp),
             ) {
-//
-//                Surface(
-//                    modifier = Modifier
-//                        .align(Alignment.CenterStart)
-//                        .clip(CircleShape)
-//                        .size(32.dp)
-//                        .clickable {
-//
-//                        }
-//                        .background(
-//                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-//                        )
-//
-//                ) {
-//                    Icon(
-//                        painter = painterResource(R.drawable.arrow_back),
-//                        contentDescription = "Back",
-//                        tint = Color.White,
-//                        modifier = Modifier.size(24.dp)
-//                    )
-//                }
-//
-//                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier
+                        .align(Alignment.Center)
                         .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -416,24 +365,24 @@ fun CallScreen(
                 }
             )
 
-            CallActionToolbar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 54.dp),
-                isMicEnabled = !isMuted,
-                isSpeakerOn = isSpeakerOn,
-                onMicClick = { viewModel.toggleMute() },
-                onSpeakerClick = {
-                    isSpeakerOn = !isSpeakerOn
-                    audioManager.isSpeakerphoneOn = isSpeakerOn
-                },
-                onEndCallClick = {
-                    viewModel.endCall(callId)
-                },
-                toggleCamera = {
-                    viewModel.toggleCamera()
-                }
-            )
+//            CallActionToolbar(
+//                modifier = Modifier
+//                    .align(Alignment.BottomCenter)
+//                    .padding(bottom = 54.dp),
+//                isMicEnabled = !isMuted,
+//                isSpeakerOn = isSpeakerOn,
+//                onMicClick = { viewModel.toggleMute() },
+//                onSpeakerClick = {
+//                    isSpeakerOn = !isSpeakerOn
+//                    audioManager.isSpeakerphoneOn = isSpeakerOn
+//                },
+//                onEndCallClick = {
+//                    viewModel.endCall(callId)
+//                },
+//                toggleCamera = {
+//                    viewModel.toggleCamera()
+//                }
+//            )
 
         }
     }
@@ -666,3 +615,137 @@ fun IncomingCallBanner(
         }
     }
 }
+
+@Composable
+fun VideoGrid(
+    tracks: Map<String, VideoTrack>,
+    myUserId: String,
+    context: Context,
+    eglBaseContext: EglBase.Context
+) {
+    val users = tracks.entries.toList()
+
+    when (users.size) {
+        0 -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Waiting for users...")
+            }
+        }
+
+        1 -> {
+            VideoItem(
+                users[0].value,
+                users[0].key,
+                myUserId,
+                context,
+                eglBaseContext,
+                Modifier.fillMaxSize()
+            )
+        }
+
+        2 -> {
+            Row(Modifier.fillMaxSize()) {
+                users.forEach {
+                    VideoItem(
+                        it.value,
+                        it.key,
+                        myUserId,
+                        context,
+                        eglBaseContext,
+                        Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        else -> {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(users) {
+                    VideoItem(
+                        it.value,
+                        it.key,
+                        myUserId,
+                        context,
+                        eglBaseContext,
+                        Modifier.aspectRatio(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun VideoItem(
+    track: VideoTrack,
+    userId: String,
+    myUserId: String,
+    context: Context,
+    eglBaseContext: EglBase.Context,
+    modifier: Modifier = Modifier
+) {
+
+
+    val isLocal = userId == myUserId
+
+    val view = remember {
+        SurfaceViewRenderer(context)
+    }
+
+    DisposableEffect(true) {
+        onDispose {
+            track.removeSink(view)
+            view.release()
+        }
+    }
+
+    Box() {
+        AndroidView(
+            modifier = modifier,
+            factory = {
+                view.apply {
+                    init(eglBaseContext, null)
+                    setMirror(isLocal)
+                    track.addSink(this)
+                }
+            },
+            update = {
+
+            }
+        )
+
+
+        Text(
+            text = if (isLocal) "You" else userId,
+            color = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(8.dp)
+        )
+    }
+}
+
+//@Composable
+//fun LocalPreview(
+//    localTrack: VideoTrack
+//) {
+//    Box(
+//        modifier = Modifier
+//            .size(120.dp)
+//            .clip(RoundedCornerShape(16.dp))
+//    ) {
+//        AndroidView(
+//            factory = { context ->
+//                SurfaceViewRenderer(context).apply {
+//                    init(EglBase.create().eglBaseContext, null)
+//                    setMirror(true)
+//                    localTrack.addSink(this)
+//                }
+//            }
+//        )
+//    }
+//}
