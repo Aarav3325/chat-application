@@ -708,9 +708,11 @@ fun VideoItem(
         }
     }
 
-    Box() {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
         AndroidView(
-            modifier = modifier,
+            modifier = modifier.fillMaxSize(),
             factory = {
                 view.apply {
                     init(eglBaseContext, null)
@@ -718,7 +720,7 @@ fun VideoItem(
                     setZOrderMediaOverlay(true)
                     setEnableHardwareScaler(true)
 
-                    //setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
                 }
             },
             update = {

@@ -138,6 +138,7 @@ class CallViewModel @Inject constructor(
 
         viewModelScope.launch {
             webRTCClient.init()
+            webRTCClient.startLocalVideo()
             _localVideoTrack.value = webRTCClient.localVideoTrack
             signalingClient.createCall(call)
 
@@ -196,6 +197,7 @@ class CallViewModel @Inject constructor(
 
         viewModelScope.launch {
             webRTCClient.init()
+            webRTCClient.startLocalVideo()
             _localVideoTrack.value = webRTCClient.localVideoTrack
             startObservers(callId)
         }
@@ -282,6 +284,8 @@ class CallViewModel @Inject constructor(
                                 timeoutJob?.cancel()
                             }
 
+                            callStateManager.updateState("CONNECTING")
+
                             webRTCClient.onAnswerReceived(userId, answer)
                         }
                     }
@@ -356,7 +360,7 @@ class CallViewModel @Inject constructor(
             // without ever entering the CallScreen, there are no active collectors observing events
             // send() would suspend the coroutine indefinitely waiting for one, permanently freezing the logic below it
             _events.trySend(UiEvent.EndCall)
-            _localVideoTrack.value = null
+//            _localVideoTrack.value = null
             _callEnded.value = true
 
 //            connectionJob?.cancel()
@@ -399,7 +403,7 @@ class CallViewModel @Inject constructor(
             webRTCClient.closeConnection()
             _events.trySend(UiEvent.EndCall)
 
-            _localVideoTrack.value = null
+           // _localVideoTrack.value = null
             _callEnded.value = true
 
 //        connectionJob?.cancel()
