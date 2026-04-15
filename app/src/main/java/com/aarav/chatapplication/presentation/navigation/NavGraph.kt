@@ -39,7 +39,7 @@ fun NavGraph(
     ) {
         addHomeScreen(navHostController, this, callViewModel)
         addChatScreen(navHostController, this, userId ?: "")
-        addGroupChatScreen(navHostController, this)
+        addGroupChatScreen(navHostController, this, callViewModel)
         addCreateGroupScreen(navHostController, this)
         addCallScreen(navHostController, this, callViewModel)
         addAuthScreen(navHostController, this)
@@ -47,7 +47,11 @@ fun NavGraph(
     }
 }
 
-fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, callViewModel: CallViewModel) {
+fun addHomeScreen(
+    navController: NavController,
+    navGraphBuilder: NavGraphBuilder,
+    callViewModel: CallViewModel
+) {
     navGraphBuilder.composable(
         route = NavRoute.Home.path,
     ) {
@@ -57,7 +61,13 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
             navController,
             navigateToChat = { receiverId, userId, currentUsername ->
 
-                navController.navigate(NavRoute.Chat.createRoute(receiverId, userId, currentUsername))
+                navController.navigate(
+                    NavRoute.Chat.createRoute(
+                        receiverId,
+                        userId,
+                        currentUsername
+                    )
+                )
             },
             navigateToGroupChat = { groupId, userId, senderName ->
                 navController.navigate(NavRoute.GroupChat.createRoute(groupId, userId, senderName))
@@ -71,7 +81,6 @@ fun addHomeScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
                         callId,
                         callerId,
                         callerName,
-                        receiverId,
                         isCaller
                     )
                 )
@@ -150,9 +159,8 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
                 navController.navigate(
                     NavRoute.Call.createRoute(
                         callId = chatId,
-                        callerId = userId,
+                        myUserId = userId,
                         callerName = currentUsername,
-                        receiverId = receiverId,
                         isCaller = true
                     )
                 )
@@ -162,7 +170,11 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
     }
 }
 
-fun addGroupChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder) {
+fun addGroupChatScreen(
+    navController: NavController,
+    navGraphBuilder: NavGraphBuilder,
+    callViewModel: CallViewModel
+) {
     navGraphBuilder.composable(
         route = NavRoute.GroupChat.path.plus("/{groupId}/{userId}/{senderName}"),
         arguments = listOf(
@@ -180,7 +192,18 @@ fun addGroupChatScreen(navController: NavController, navGraphBuilder: NavGraphBu
             myId = userId,
             senderName = senderName,
             back = { navController.popBackStack() },
-            viewModel = hiltViewModel()
+            onCallStart = {
+              navController.navigate(
+                  NavRoute.Call.createRoute(
+                      callId = groupId,
+                      myUserId = userId,
+                      callerName = senderName,
+                      isCaller = true
+                  )
+              )
+            },
+            viewModel = hiltViewModel(),
+            callViewModel = callViewModel
         )
     }
 }
@@ -210,27 +233,28 @@ fun addCreateGroupScreen(navController: NavController, navGraphBuilder: NavGraph
 }
 
 
-fun addCallScreen(navController: NavController, navGraphBuilder: NavGraphBuilder, callViewModel: CallViewModel) {
+fun addCallScreen(
+    navController: NavController,
+    navGraphBuilder: NavGraphBuilder,
+    callViewModel: CallViewModel
+) {
     navGraphBuilder.composable(
-        route = NavRoute.Call.path.plus("/{callId}/{callerId}/{callerName}/{receiverId}/{isCaller}"),
+        route = NavRoute.Call.path.plus("/{callId}/{myUserId}/{callerName}/{isCaller}"),
         arguments = listOf(
             navArgument("callId") { type = NavType.StringType },
-            navArgument("callerId") { type = NavType.StringType },
+            navArgument("myUserId") { type = NavType.StringType },
             navArgument("callerName") { type = NavType.StringType },
-            navArgument("receiverId") { type = NavType.StringType },
             navArgument("isCaller") { type = NavType.BoolType }
         )
     ) {
         val groupId = it.arguments?.getString("callId").toString()
-        val userId = it.arguments?.getString("callerId").toString()
+        val myUserId = it.arguments?.getString("myUserId").toString()
         val callerName = it.arguments?.getString("callerName").toString()
-        val receiverId = it.arguments?.getString("receiverId").toString()
         val senderName = it.arguments?.getBoolean("isCaller")
 
         CallScreen(
             callId = groupId,
-            callerId = userId,
-            receiverId = receiverId,
+            myUserId = myUserId,
             callerName = callerName,
             isCaller = senderName ?: false,
             onCallEnd = {

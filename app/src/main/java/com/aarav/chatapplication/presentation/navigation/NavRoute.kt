@@ -19,8 +19,8 @@ sealed class NavRoute(val path: String) {
     }
 
     object Call: NavRoute("call") {
-        fun createRoute(callId: String, callerId: String, callerName: String, receiverId: String, isCaller: Boolean): String {
-            return "call/$callId/$callerId/$callerName/$receiverId/$isCaller"
+        fun createRoute(callId: String, myUserId: String, callerName: String, isCaller: Boolean): String {
+            return "call/$callId/$myUserId/$callerName/$isCaller"
         }
     }
 

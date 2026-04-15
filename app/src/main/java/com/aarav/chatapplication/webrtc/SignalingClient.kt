@@ -82,7 +82,7 @@ class SignalingClient
 
     fun listenForIncomingCalls(userId: String): Flow<CallModel> = callbackFlow {
 
-        val ref = callRef.orderByChild("receiverId").equalTo(userId)
+//        val ref = callRef.orderByChild("receiverId").equalTo(userId)
 
         val listener = object : ValueEventListener {
 
@@ -92,7 +92,11 @@ class SignalingClient
 
                     val call = child.getValue(CallModel::class.java)
 
-                    if (call != null) {
+                    if (
+                        call != null &&
+                        call.participants.contains(userId) &&
+                        call.callerId != userId
+                    ) {
                         trySend(call)
                     }
 
@@ -109,10 +113,10 @@ class SignalingClient
             }
         }
 
-        ref.addValueEventListener(listener)
+        callRef.addValueEventListener(listener)
 
         awaitClose {
-            ref.removeEventListener(listener)
+            callRef.removeEventListener(listener)
         }
     }
 
@@ -124,7 +128,8 @@ class SignalingClient
         val data = IceCandidateModel(
             sdp = candidate.sdp,
             sdpMid = candidate.sdpMid,
-            sdpMLineIndex = candidate.sdpMLineIndex
+            sdpMLineIndex = candidate.sdpMLineIndex,
+            senderId = candidate.senderId
         )
 
         callRef.child(callId)

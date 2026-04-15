@@ -68,7 +68,7 @@ class CallViewModel @Inject constructor(
     val tracks = webRTCClient.allTracks
     private val _localVideoTrack = MutableStateFlow<VideoTrack?>(null)
     val localVideoTrack = _localVideoTrack.asStateFlow()
-
+    val eglContext = webRTCClient.eglContext
     private var connectionJob: Job? = null
     private var signalingJob: Job? = null
     private var iceOutgoingJob: Job? = null
@@ -105,9 +105,9 @@ class CallViewModel @Inject constructor(
         }
     }
 
-    fun getEglContext(): EglBase.Context {
-        return webRTCClient.getEglContext()
-    }
+//    fun getEglContext(): EglBase.Context {
+//        return webRTCClient.getEglContext()
+//    }
 
     fun startCall(call: CallModel, myUserId: String) {
         this.myUserId = myUserId
@@ -241,9 +241,9 @@ class CallViewModel @Inject constructor(
 
                     val myOffer = call?.offers?.get(myUserId)
 
-                    if (!isCaller && myOffer != null && !handledOffers.contains(myUserId)) {
+                    if (!isCaller && myOffer != null && !handledOffers.contains(call.callerId)) {
 
-                        handledOffers.add(myUserId)
+                        handledOffers.add(call.callerId)
 
                         if (!isAnswered) {
                             isAnswered = true

@@ -68,6 +68,7 @@ import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.utils.formatTime
 import kotlinx.coroutines.delay
 import org.webrtc.EglBase
+import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoTrack
 
@@ -75,8 +76,7 @@ import org.webrtc.VideoTrack
 @Composable
 fun CallScreen(
     callId: String,
-    callerId: String,
-    receiverId: String,
+    myUserId: String,
     callerName: String,
     isCaller: Boolean,
     onCallEnd: () -> Unit,
@@ -93,9 +93,7 @@ fun CallScreen(
 //        SurfaceViewRenderer(context)
 //    }
 
-    val eglBaseContext = remember {
-        viewModel.getEglContext()
-    }
+    val eglBaseContext by viewModel.eglContext.collectAsState()
 
     val state by viewModel.callState.collectAsState()
 
@@ -150,19 +148,23 @@ fun CallScreen(
             )
         }
 
-        if (isCaller) {
-            viewModel.startCall(
-                CallModel(
-                    callId = callId,
-                    callerId = callerId,
-                    receiverId = receiverId,
-                    callerName = callerName
-                ),
-                callerId
-            )
-        } else {
-            viewModel.receiveCall(callId, receiverId)
+        if(!isCaller) {
+            viewModel.receiveCall(callId, myUserId)
         }
+
+//        if (isCaller) {
+//            viewModel.startCall(
+//                CallModel(
+//                    callId = callId,
+//                    callerId = callerId,
+//                    receiverId = ,
+//                    callerName = callerName
+//                ),
+//                callerId
+//            )
+//        } else {
+//            viewModel.receiveCall(callId, receiverId)
+//        }
     }
 
 //    LaunchedEffect(Unit) {
@@ -265,16 +267,16 @@ fun CallScreen(
                 .fillMaxSize()
                 .padding(it)
         ) {
-            val myUserId = if (isCaller) callerId else receiverId
+//            val myUserId = if (isCaller) callerId else receiverId
 
-            VideoGrid(
-                tracks,
-                myUserId,
-                context,
-                eglBaseContext
-            )
-
-
+            if (eglBaseContext != null) {
+                VideoGrid(
+                    tracks,
+                    myUserId,
+                    context,
+                    eglBaseContext!!
+                )
+            }
 
 //            AndroidView(
 //                factory = { remoteView },
@@ -625,6 +627,8 @@ fun VideoGrid(
 ) {
     val users = tracks.entries.toList()
 
+    Log.d("VIDEO", "size: ${users.size}")
+
     when (users.size) {
         0 -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -644,7 +648,7 @@ fun VideoGrid(
         }
 
         2 -> {
-            Row(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize()) {
                 users.forEach {
                     VideoItem(
                         it.value,
@@ -690,9 +694,10 @@ fun VideoItem(
 ) {
 
 
-    val isLocal = userId == myUserId
+   // val isLocal = userId == myUserId
+    val isLocal = userId == myUserId || userId == "LOCAL"
 
-    val view = remember {
+    val view = remember(eglBaseContext) {
         SurfaceViewRenderer(context)
     }
 
@@ -710,11 +715,16 @@ fun VideoItem(
                 view.apply {
                     init(eglBaseContext, null)
                     setMirror(isLocal)
-                    track.addSink(this)
+                    setZOrderMediaOverlay(true)
+                    setEnableHardwareScaler(true)
+
+                    //setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
                 }
             },
             update = {
-
+                Log.d("VIDEO", "Rendering track for $userId")
+                track.setEnabled(true)
+                track.addSink(view)
             }
         )
 

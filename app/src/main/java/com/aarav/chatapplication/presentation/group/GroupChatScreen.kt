@@ -8,15 +8,12 @@ import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -38,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +47,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.GroupMessage
+import com.aarav.chatapplication.presentation.call.CallViewModel
 import com.aarav.chatapplication.presentation.chat.TextTypeBox
 import com.aarav.chatapplication.presentation.chat.buildRelativeTime
 import com.aarav.chatapplication.presentation.chat.formatTimestamp
@@ -56,6 +57,8 @@ import com.aarav.chatapplication.presentation.chat.isKeyboardOpen
 import com.aarav.chatapplication.presentation.components.MessageStatusIcon
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.ui.theme.manrope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -64,7 +67,9 @@ fun GroupChatScreen(
     myId: String,
     senderName: String,
     back: () -> Unit,
-    viewModel: GroupChatViewModel
+    onCallStart: () -> Unit,
+    viewModel: GroupChatViewModel,
+    callViewModel: CallViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -72,6 +77,8 @@ fun GroupChatScreen(
     val listState = rememberLazyListState()
     var isFocused by remember { mutableStateOf(false) }
     val isKeyboardOpen = isKeyboardOpen()
+
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.setSenderName(senderName)
@@ -197,6 +204,42 @@ fun GroupChatScreen(
                                 }
                             }
                         }
+
+                        IconButton(
+                            onClick = {
+//                                navigateToCall()
+
+                                val members = uiState.group?.members
+                                val participantList = members?.keys?.toList()
+
+                                scope.launch {
+                                    participantList?.let {
+                                        val call = CallModel(
+                                            callId = groupId,
+                                            callerId = myId,
+                                            callerName = senderName,
+                                            participants = it,
+                                        )
+
+                                        callViewModel.startCall(
+                                            call,
+                                            myId
+                                        )
+
+                                        delay(300)
+
+                                        onCallStart()
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.phone),
+                                contentDescription = "call",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
 
@@ -276,9 +319,9 @@ fun GroupChatCard(
     isMine: Boolean
 ) {
     val bg = if (isMine) MaterialTheme.colorScheme.primaryContainer
-             else MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.secondaryContainer
     val content = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
-                  else MaterialTheme.colorScheme.onSecondaryContainer
+    else MaterialTheme.colorScheme.onSecondaryContainer
     val alignment = if (isMine) Alignment.End else Alignment.Start
 
     Box(

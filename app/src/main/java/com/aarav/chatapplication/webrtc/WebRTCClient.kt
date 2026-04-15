@@ -56,12 +56,17 @@ class WebRTCClient
     private var videoCapturer: VideoCapturer? = null
     private var isFrontCamera = true
     private lateinit var eglBase: EglBase
+    private val _eglContext = MutableStateFlow<EglBase.Context?>(null)
+    val eglContext = _eglContext.asStateFlow()
     private var remoteVideoTrack: VideoTrack? = null
 
 
     fun init() {
 
         if (peerConnectionFactory != null) return
+//        if(::eglBase.isInitialized) {
+//            return
+//        }
 
         isClosed = false
         _connectionState.value = "NEW"
@@ -73,6 +78,7 @@ class WebRTCClient
 
 
         eglBase = EglBase.create()
+        _eglContext.value = eglBase.eglBaseContext
 
 
         peerConnectionFactory = PeerConnectionFactory.builder()
@@ -148,13 +154,7 @@ class WebRTCClient
         val streamIds = listOf("ARDAMS")
 
         localAudioTrack?.let { pc.addTrack(it, streamIds) }
-        localVideoTrack?.let {
-            pc.addTrack(it, streamIds)
-            _allTracks.value =
-                _allTracks.value.toMutableMap().apply {
-                    put(userId, it)
-                }
-        }
+        localVideoTrack?.let { pc.addTrack(it, streamIds) }
 
 
         peerConnections[userId] = pc
@@ -195,7 +195,11 @@ class WebRTCClient
         override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
             if (!isClosed) {
                 Log.i("CALL", "[$userId] $newState")
-                _connectionState.value = newState?.name ?: "UNKNOWN"
+                if (newState == PeerConnection.PeerConnectionState.CONNECTED &&
+                    _connectionState.value != "CONNECTED"
+                ) {
+                    _connectionState.value = "CONNECTED"
+                }
             }
         }
 
@@ -253,6 +257,11 @@ class WebRTCClient
         Log.d("CALL", "startCapture called")
 
         localVideoTrack = peerConnectionFactory.createVideoTrack("videoTrack", videoSource)
+        localVideoTrack?.let {
+            _allTracks.value =  _allTracks.value.toMutableMap().apply {
+                put("LOCAL", it)
+            }
+        }
 
         return localVideoTrack
     }
@@ -343,6 +352,10 @@ class WebRTCClient
     fun createOffer(userId: String, onOfferCreated: (SessionDescription) -> Unit) {
 
         if (isClosed) return
+        if (!peerConnections.containsKey(userId)) {
+            createPeerConnection(userId)
+        }
+
         val pc = peerConnections[userId] ?: return
 
 
@@ -365,8 +378,11 @@ class WebRTCClient
     fun createAnswer(userId: String, onAnswerCreated: (SessionDescription) -> Unit) {
 
         if (isClosed) return
-        val pc = peerConnections[userId] ?: return
+        if (!peerConnections.containsKey(userId)) {
+            createPeerConnection(userId)
+        }
 
+        val pc = peerConnections[userId] ?: return
 
         pc.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(sdp: SessionDescription) {
@@ -390,6 +406,10 @@ class WebRTCClient
         onAnswerCreated: (SessionDescription) -> Unit
     ) {
         if (isClosed) return
+        if (!peerConnections.containsKey(userId)) {
+            createPeerConnection(userId)
+        }
+
         val pc = peerConnections[userId] ?: return
 
         val session = SessionDescription(
@@ -413,6 +433,10 @@ class WebRTCClient
 
     fun onAnswerReceived(userId: String, answer: String) {
         if (isClosed) return
+        if (!peerConnections.containsKey(userId)) {
+            createPeerConnection(userId)
+        }
+
         val pc = peerConnections[userId] ?: return
 
         val session = SessionDescription(
@@ -434,6 +458,10 @@ class WebRTCClient
 
     fun addIceCandidate(userId: String, candidate: IceCandidateModel) {
         if (isClosed) return
+        if (!peerConnections.containsKey(userId)) {
+            createPeerConnection(userId)
+        }
+
         val pc = peerConnections[userId] ?: return
 
         val ice = IceCandidate(
@@ -442,7 +470,12 @@ class WebRTCClient
             candidate.sdp
         )
 
+
         pc.addIceCandidate(ice)
+
+
+//        if (pc.remoteDescription != null) {
+//        }
     }
 
     fun closeConnection() {
@@ -462,8 +495,6 @@ class WebRTCClient
             localAudioTrack?.dispose()
             localAudioTrack = null
 
-            val users = peerConnections.keys.toList()
-
             peerConnections.values.forEach {
                 it.close()
                 it.dispose()
@@ -471,22 +502,17 @@ class WebRTCClient
 
             peerConnections.clear()
 
-            users.forEach { userId ->
-                _allTracks.value =
-                    _allTracks.value.toMutableMap().apply {
-                        remove(userId)
-                    }
-            }
+            _allTracks.value = emptyMap()
         } catch (e: Exception) {
             Log.e("CALL", "Error closing peer connection", e)
         }
-
-        try {
-            peerConnectionFactory?.dispose()
-        } catch (e: Exception) {
-            Log.e("CALL", "Error disposing factory", e)
-        }
-        peerConnectionFactory = null
+//
+//        try {
+//            peerConnectionFactory?.dispose()
+//        } catch (e: Exception) {
+//            Log.e("CALL", "Error disposing factory", e)
+//        }
+//        peerConnectionFactory = null
     }
 
 

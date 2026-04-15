@@ -213,11 +213,14 @@ class MainActivity : ComponentActivity() {
                         IncomingCallBanner(
                             callerName = if (callInfo?.callerName.isNullOrBlank())
                                 "User"
+                            else if(!callInfo?.callerName.isNullOrBlank() && callInfo?.isGroupCall() == true) {
+                                "${callInfo?.callerName} started a group call"
+                            }
                             else
                                 callInfo?.callerName!!,
                             onAccept = {
                                 showCallBanner = false
-                                navController.navigate("call/${callInfo?.callId}/${callInfo?.callerId}/${callInfo?.callerName}/${callInfo?.receiverId}/${false}")
+                                navController.navigate("call/${callInfo?.callId}/${currentUserId}/${callInfo?.callerName}/${false}")
                             },
                             onDecline = {
                                 showCallBanner = false
