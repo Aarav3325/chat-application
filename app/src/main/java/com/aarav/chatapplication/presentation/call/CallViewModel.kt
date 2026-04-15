@@ -158,6 +158,7 @@ class CallViewModel @Inject constructor(
         _isMuted.value = false
         _callEnded.value = false
         timerJob?.cancel()
+        webRTCClient.ensureAudioEnabled()
     }
 
     private fun initiateOfferTo(callId: String, userId: String) {

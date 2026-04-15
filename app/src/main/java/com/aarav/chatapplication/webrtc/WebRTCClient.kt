@@ -27,6 +27,7 @@ import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
 import org.webrtc.VideoCapturer
 import org.webrtc.VideoTrack
+import org.webrtc.audio.JavaAudioDeviceModule
 import javax.inject.Inject
 
 class WebRTCClient
@@ -54,6 +55,7 @@ class WebRTCClient
     var localVideoTrack: VideoTrack? = null
     private var localVideoSource: org.webrtc.VideoSource? = null
     private var localAudioSource: org.webrtc.AudioSource? = null
+    private var audioDeviceModule: JavaAudioDeviceModule? = null
     private var videoCapturer: VideoCapturer? = null
     private var surfaceTextureHelper: SurfaceTextureHelper? = null
     private var isCapturing = false
@@ -68,6 +70,7 @@ class WebRTCClient
     val eglContext = _eglContext.asStateFlow()
     private val pendingIceCandidates = mutableMapOf<String, MutableList<IceCandidate>>()
     private val remoteDescriptionSet = mutableSetOf<String>()
+    private val remoteAudioTracks = mutableMapOf<String, AudioTrack>()
 
 
     fun init() {
@@ -92,7 +95,13 @@ class WebRTCClient
         _eglContext.value = eglBase.eglBaseContext
 
 
+        audioDeviceModule = JavaAudioDeviceModule.builder(context)
+            .setUseHardwareAcousticEchoCanceler(true)
+            .setUseHardwareNoiseSuppressor(true)
+            .createAudioDeviceModule()
+
         peerConnectionFactory = PeerConnectionFactory.builder()
+            .setAudioDeviceModule(audioDeviceModule)
             .setVideoEncoderFactory(
                 DefaultVideoEncoderFactory(
                     eglBase.eglBaseContext,
@@ -152,6 +161,7 @@ class WebRTCClient
 
         localAudioTrack?.let { pc.addTrack(it, streamIds) }
         localVideoTrack?.let { pc.addTrack(it, streamIds) }
+        localAudioTrack?.setEnabled(true)
 
 
         peerConnections[userId] = pc
@@ -219,6 +229,9 @@ class WebRTCClient
             val track = transceiver?.receiver?.track()
             if (track is AudioTrack) {
                 track.setEnabled(true)
+                track.setVolume(10.0)
+                remoteAudioTracks[userId] = track
+                Log.d("CALL", "Remote audio track active for $userId")
             }
 
             if (track is VideoTrack) {
@@ -314,6 +327,10 @@ class WebRTCClient
     fun toggleMute(isMuted: Boolean) {
         Log.d("CALL", "MUTE: $isMuted")
         localAudioTrack?.setEnabled(!isMuted)
+    }
+
+    fun ensureAudioEnabled() {
+        localAudioTrack?.setEnabled(true)
     }
 
     fun createOffer(userId: String, onOfferCreated: (SessionDescription) -> Unit) {
@@ -470,6 +487,7 @@ class WebRTCClient
             peerConnections.clear()
             pendingIceCandidates.clear()
             remoteDescriptionSet.clear()
+            remoteAudioTracks.clear()
             _connectionState.value = "NEW"
             _allTracks.value = _allTracks.value.filterKeys { it == "LOCAL" }
             restoreAudioAfterCall()
@@ -492,6 +510,7 @@ class WebRTCClient
         }
         pendingIceCandidates.remove(userId)
         remoteDescriptionSet.remove(userId)
+        remoteAudioTracks.remove(userId)
         _allTracks.value = _allTracks.value.toMutableMap().apply { remove(userId) }
     }
 
