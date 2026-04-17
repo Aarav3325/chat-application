@@ -3,7 +3,6 @@ package com.aarav.chatapplication.presentation.group
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
 import com.aarav.chatapplication.domain.model.User
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +83,7 @@ fun CreateGroupScreen(
                         "New Group",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 },
@@ -115,7 +114,7 @@ fun CreateGroupScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         if (uiState.isCreating) "Creating..." else "Create Group",
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -143,7 +142,7 @@ fun CreateGroupScreen(
                 placeholder = {
                     Text(
                         "Enter group name",
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -161,7 +160,7 @@ fun CreateGroupScreen(
                 ) {
                     Text(
                         "${uiState.selectedUserIds.size} member${if (uiState.selectedUserIds.size > 1) "s" else ""} selected",
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -174,7 +173,7 @@ fun CreateGroupScreen(
 
             Text(
                 "Select Members",
-                fontFamily = manrope,
+                fontFamily = hankenGrotesk,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.secondary,
@@ -254,14 +253,14 @@ fun SelectableUserCard(
             ) {
                 Text(
                     user.name ?: "",
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     user.phoneNumber,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -32,12 +32,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
 import com.aarav.chatapplication.domain.model.User
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +72,7 @@ fun CustomBottomSheet(
 
                 Text(
                     it,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -152,14 +151,14 @@ fun CreateChatUserCard(
             ) {
                 Text(
                     user.name ?: "",
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     user.phoneNumber,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface

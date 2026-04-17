@@ -1,11 +1,9 @@
 package com.aarav.chatapplication.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -19,6 +17,7 @@ import com.aarav.chatapplication.R
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -124,18 +123,30 @@ fun AppTheme(
 
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = AppTypography,
         content = content
     )
 }
 
 
 
-val manrope = FontFamily(
-    Font(R.font.manrope_light, FontWeight.Light),
-    Font(R.font.manrope_regular, FontWeight.Normal),
-    Font(R.font.manrope_medium, FontWeight.Medium),
-    Font(R.font.manrope_semi_bold, FontWeight.SemiBold),
-    Font(R.font.manrope_bold, FontWeight.Bold),
-    Font(R.font.manrope_extra_bold, FontWeight.ExtraBold),
+val hankenGrotesk = FontFamily(
+    Font(R.font.hanken_grotesk_thin, FontWeight.Thin),
+    Font(R.font.hanken_grotesk_thin_italic, FontWeight.Thin, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_extra_light, FontWeight.ExtraLight),
+    Font(R.font.hanken_grotesk_extra_light_italic, FontWeight.ExtraLight, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_light, FontWeight.Light),
+    Font(R.font.hanken_grotesk_light_italic, FontWeight.Light, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_regular, FontWeight.Normal),
+    Font(R.font.hanken_grotesk_italic, FontWeight.Normal, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_medium, FontWeight.Medium),
+    Font(R.font.hanken_grotesk_medium_italic, FontWeight.Medium, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_semi_bold, FontWeight.SemiBold),
+    Font(R.font.hanken_grotesk_semi_bold_italic, FontWeight.SemiBold, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_bold, FontWeight.Bold),
+    Font(R.font.hanken_grotesk_bold_italic, FontWeight.Bold, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_extra_bold, FontWeight.ExtraBold),
+    Font(R.font.hanken_grotesk_extra_bold_italic, FontWeight.ExtraBold, FontStyle.Italic),
+    Font(R.font.hanken_grotesk_black, FontWeight.Black),
+    Font(R.font.hanken_grotesk_black_italic, FontWeight.Black, FontStyle.Italic),
 )

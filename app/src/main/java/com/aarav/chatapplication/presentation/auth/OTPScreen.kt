@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ButtonDefaults
@@ -44,7 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +81,7 @@ fun OPTScreen(
         Text(
             text = "Enter the 6-digit verification code (OTP) sent to your phone number",
             color = MaterialTheme.colorScheme.onBackground,
-            fontFamily = manrope,
+            fontFamily = hankenGrotesk,
             fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
@@ -93,7 +92,7 @@ fun OPTScreen(
             text = "+91 ${uiState.phone}",
             color = MaterialTheme.colorScheme.primary,
             fontSize = 16.sp,
-            fontFamily = manrope,
+            fontFamily = hankenGrotesk,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )

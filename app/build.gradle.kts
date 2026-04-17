@@ -60,7 +60,7 @@ kapt {
 dependencies {
 
     //WebRTC
-    implementation("io.getstream:stream-webrtc-android:1.3.6")
+    implementation("io.getstream:stream-webrtc-android:1.3.10")
 
     implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
 // Hilt

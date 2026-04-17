@@ -61,7 +61,7 @@ import com.aarav.chatapplication.presentation.call.CallViewModel
 import com.aarav.chatapplication.presentation.components.MessageStatusIcon
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.presentation.home.ChatViewModel
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -184,7 +184,7 @@ fun ChatScreen(
                         ) {
                             Text(
                                 uiState.user?.name ?: "",
-                                fontFamily = manrope,
+                                fontFamily = hankenGrotesk,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -197,7 +197,7 @@ fun ChatScreen(
                                 if (uiState.isOtherUserTyping) {
                                     Text(
                                         "typing...",
-                                        fontFamily = manrope,
+                                        fontFamily = hankenGrotesk,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.secondary
@@ -214,7 +214,7 @@ fun ChatScreen(
 
                                             Text(
                                                 "Online",
-                                                fontFamily = manrope,
+                                                fontFamily = hankenGrotesk,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF00FF85)
@@ -224,7 +224,7 @@ fun ChatScreen(
                                         !uiState.presence!!.online -> {
                                             Text(
                                                 "last active at ${formatTimestamp(uiState.presence!!.lastSeen)}",
-                                                fontFamily = manrope,
+                                                fontFamily = hankenGrotesk,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.tertiary
@@ -243,7 +243,8 @@ fun ChatScreen(
                                     callId = chatId,
                                     callerId = myId,
                                     callerName = currentUsername,
-                                    receiverId = otherUserId,
+                                    participants = listOf(myId, otherUserId),
+                                    groupCall = false,
                                     videoCall = true
                                 )
 
@@ -272,7 +273,8 @@ fun ChatScreen(
                                     callId = chatId,
                                     callerId = myId,
                                     callerName = currentUsername,
-                                    receiverId = otherUserId,
+                                    participants = listOf(myId, otherUserId),
+                                    groupCall = false,
                                     videoCall = false
                                 )
 
@@ -317,7 +319,7 @@ fun ChatScreen(
                             ) {
                                 Text(
                                     "Say Hey to ${uiState.user?.name} and start a conversation",
-                                    fontFamily = manrope,
+                                    fontFamily = hankenGrotesk,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -353,7 +355,7 @@ fun ChatScreen(
                 ) {
                     Text(
                         buildRelativeTime(uiState.messages.last().timestamp),
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onTertiary,
@@ -409,14 +411,14 @@ fun TextTypeBox(
                 if (error == null) {
                     Text(
                         "Type here...",
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 } else {
                     Text(
                         error,
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -484,7 +486,7 @@ fun ChatCard(
                     ) {
                         Text(
                             message.text,
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W700,
                             modifier = Modifier,
@@ -499,7 +501,7 @@ fun ChatCard(
             Row {
                 Text(
                     formatTimestamp(message.timestamp),
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.W700,
                     modifier = Modifier,

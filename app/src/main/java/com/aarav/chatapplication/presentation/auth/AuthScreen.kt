@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.aarav.chatapplication.R
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -90,7 +90,7 @@ fun AuthScreen(
                 text = "ChatApp",
                 fontSize = 36.sp,
                 fontWeight = FontWeight.ExtraBold,
-                fontFamily = manrope,
+                fontFamily = hankenGrotesk,
                 color = MaterialTheme.colorScheme.onBackground
             )
 
@@ -99,7 +99,7 @@ fun AuthScreen(
             Text(
                 text = "Stay synced with your circle with online chatting",
                 fontSize = 20.sp,
-                fontFamily = manrope,
+                fontFamily = hankenGrotesk,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
@@ -110,7 +110,7 @@ fun AuthScreen(
             Text(
                 text = "We will send you an OTP to verify your phone number. Enter your phone number ",
                 fontSize = 16.sp,
-                fontFamily = manrope,
+                fontFamily = hankenGrotesk,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
@@ -141,7 +141,7 @@ fun AuthScreen(
                 maxLines = 1,
                 shape = RoundedCornerShape(14.dp),
                 placeholder = {
-                    Text("Enter phone number", fontFamily = manrope)
+                    Text("Enter phone number", fontFamily = hankenGrotesk)
                 },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -157,7 +157,7 @@ fun AuthScreen(
                     uiState.phoneError?.let {
                         Text(
                             it,
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             color = MaterialTheme.colorScheme.error
                         )
                     }
@@ -185,7 +185,7 @@ fun AuthScreen(
             ) {
                 Text(
                     text = "Next",
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp

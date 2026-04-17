@@ -106,6 +106,7 @@ class SignalingClient
                     ) {
                         trySend(call)
                     }
+
                 } catch (e: Exception) {
                     Log.e("SIGNALING", "Error parsing call: ${snapshot.key}", e)
                 }

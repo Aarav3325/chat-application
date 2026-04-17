@@ -265,14 +265,14 @@ class CallViewModel @Inject constructor(
             signalingClient.listenForCall(callId).collect { call ->
                 if (isEnding) return@collect
                 if (call == null) {
-                    Log.w(TAG, "[$myUserId] Call data is null: call may have been deleted")
+                    Log.w(TAG, "[$myUserId] GroupCall data is null: call may have been deleted")
                     return@collect
                 }
 
                 if (activeCallerId.isEmpty()) activeCallerId = call.callerId
 
                 if (call.ended) {
-                    Log.d(TAG, "[$myUserId] Call ended flag detected")
+                    Log.d(TAG, "[$myUserId] GroupCall ended flag detected")
                     when {
                         call.isBusy -> finishCall(call.callId, "BUSY")
                         !isAnswered && isCaller -> finishCall(call.callId, "REJECTED")

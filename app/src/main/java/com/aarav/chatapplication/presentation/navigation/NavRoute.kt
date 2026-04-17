@@ -18,9 +18,15 @@ sealed class NavRoute(val path: String) {
         }
     }
 
-    object Call: NavRoute("call") {
-        fun createRoute(callId: String, myUserId: String, callerName: String, isCaller: Boolean, isGroupCall: Boolean, isVideoCall: Boolean): String {
-            return "call/$callId/$myUserId/$callerName/$isCaller/$isGroupCall/$isVideoCall"
+    object GroupCall: NavRoute("groupCall") {
+        fun createRoute(callId: String, myUserId: String, callerName: String, isCaller: Boolean, isVideoCall: Boolean): String {
+            return "groupCall/$callId/$myUserId/$callerName/$isCaller/$isVideoCall"
+        }
+    }
+
+    object OneToOne: NavRoute("oneToOne") {
+        fun createRoute(callId: String, myUserId: String, callerName: String, isCaller: Boolean, isVideoCall: Boolean): String {
+            return "oneToOne/$callId/$myUserId/$callerName/$isCaller/$isVideoCall"
         }
     }
 

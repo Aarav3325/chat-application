@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 
 @Composable
 fun BottomNavigation(navController: NavController) {
@@ -54,7 +54,7 @@ fun BottomNavigation(navController: NavController) {
                 label = {
                     Text(
                         item.name,
-                        fontFamily = manrope
+                        fontFamily = hankenGrotesk
                     )
                 },
                 icon = {

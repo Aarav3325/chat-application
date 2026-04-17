@@ -56,7 +56,7 @@ import com.aarav.chatapplication.presentation.chat.formatTimestamp
 import com.aarav.chatapplication.presentation.chat.isKeyboardOpen
 import com.aarav.chatapplication.presentation.components.MessageStatusIcon
 import com.aarav.chatapplication.presentation.components.MyAlertDialog
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -175,7 +175,7 @@ fun GroupChatScreen(
                         ) {
                             Text(
                                 uiState.group?.name ?: "",
-                                fontFamily = manrope,
+                                fontFamily = hankenGrotesk,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -188,7 +188,7 @@ fun GroupChatScreen(
                                 if (uiState.typingUserIds.isNotEmpty()) {
                                     Text(
                                         "someone is typing...",
-                                        fontFamily = manrope,
+                                        fontFamily = hankenGrotesk,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.secondary
@@ -197,7 +197,7 @@ fun GroupChatScreen(
                                     val memberCount = uiState.group?.members?.size ?: 0
                                     Text(
                                         "$memberCount members",
-                                        fontFamily = manrope,
+                                        fontFamily = hankenGrotesk,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Normal,
                                         color = MaterialTheme.colorScheme.tertiary
@@ -304,7 +304,7 @@ fun GroupChatScreen(
                             ) {
                                 Text(
                                     "Start a conversation in ${uiState.group?.name ?: "this group"}",
-                                    fontFamily = manrope,
+                                    fontFamily = hankenGrotesk,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -340,7 +340,7 @@ fun GroupChatScreen(
                 ) {
                     Text(
                         buildRelativeTime(uiState.messages.last().timestamp),
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onTertiary,
@@ -386,7 +386,7 @@ fun GroupChatCard(
                         if (!isMine) {
                             Text(
                                 message.senderName,
-                                fontFamily = manrope,
+                                fontFamily = hankenGrotesk,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -396,7 +396,7 @@ fun GroupChatCard(
 
                         Text(
                             message.text,
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W700,
                             color = content
@@ -410,7 +410,7 @@ fun GroupChatCard(
             Row {
                 Text(
                     formatTimestamp(message.timestamp),
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.W700,
                     color = content

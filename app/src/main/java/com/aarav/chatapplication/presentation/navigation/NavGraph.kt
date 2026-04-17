@@ -13,8 +13,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.aarav.chatapplication.domain.repository.AuthRepository
 import com.aarav.chatapplication.presentation.auth.AuthScreen
-import com.aarav.chatapplication.presentation.call.CallScreen
+import com.aarav.chatapplication.presentation.call.GroupCallScreen
 import com.aarav.chatapplication.presentation.call.CallViewModel
+import com.aarav.chatapplication.presentation.call.OneToOneCallScreen
 import com.aarav.chatapplication.presentation.chat.ChatScreen
 import com.aarav.chatapplication.presentation.group.CreateGroupScreen
 import com.aarav.chatapplication.presentation.group.GroupChatScreen
@@ -41,7 +42,8 @@ fun NavGraph(
         addChatScreen(navHostController, this, userId ?: "", callViewModel)
         addGroupChatScreen(navHostController, this, callViewModel)
         addCreateGroupScreen(navHostController, this)
-        addCallScreen(navHostController, this, callViewModel)
+        addGroupCallScreen(navHostController, this, callViewModel)
+        addOneToOneCallScreen(navHostController, this, callViewModel)
         addAuthScreen(navHostController, this)
         addProfileScreen(navHostController, this)
     }
@@ -147,12 +149,11 @@ fun addChatScreen(navController: NavController, navGraphBuilder: NavGraphBuilder
             myId = userId,
             navigateToCall = { isVideoCall ->
                 navController.navigate(
-                    NavRoute.Call.createRoute(
+                    NavRoute.OneToOne.createRoute(
                         callId = chatId,
                         myUserId = userId,
                         callerName = currentUsername,
                         isCaller = true,
-                        isGroupCall = false,
                         isVideoCall = isVideoCall
                     )
                 )
@@ -187,12 +188,11 @@ fun addGroupChatScreen(
             back = { navController.popBackStack() },
             onCallStart = { isVideoCall ->
               navController.navigate(
-                  NavRoute.Call.createRoute(
+                  NavRoute.GroupCall.createRoute(
                       callId = groupId,
                       myUserId = userId,
                       callerName = senderName,
                       isCaller = true,
-                      isGroupCall = true,
                       isVideoCall = isVideoCall
                   )
               )
@@ -228,19 +228,18 @@ fun addCreateGroupScreen(navController: NavController, navGraphBuilder: NavGraph
 }
 
 
-fun addCallScreen(
+fun addGroupCallScreen(
     navController: NavController,
     navGraphBuilder: NavGraphBuilder,
     callViewModel: CallViewModel
 ) {
     navGraphBuilder.composable(
-        route = NavRoute.Call.path.plus("/{callId}/{myUserId}/{callerName}/{isCaller}/{isGroupCall}/{isVideoCall}"),
+        route = NavRoute.GroupCall.path.plus("/{callId}/{myUserId}/{callerName}/{isCaller}/{isVideoCall}"),
         arguments = listOf(
             navArgument("callId") { type = NavType.StringType },
             navArgument("myUserId") { type = NavType.StringType },
             navArgument("callerName") { type = NavType.StringType },
             navArgument("isCaller") { type = NavType.BoolType },
-            navArgument("isGroupCall") { type = NavType.BoolType },
             navArgument("isVideoCall") { type = NavType.BoolType }
         )
     ) {
@@ -248,15 +247,49 @@ fun addCallScreen(
         val myUserId = it.arguments?.getString("myUserId").toString()
         val callerName = it.arguments?.getString("callerName").toString()
         val senderName = it.arguments?.getBoolean("isCaller")
-        val isGroupCall = it.arguments?.getBoolean("isGroupCall")
         val isVideoCall = it.arguments?.getBoolean("isVideoCall")
 
-        CallScreen(
+        GroupCallScreen(
             callId = groupId,
             myUserId = myUserId,
             callerName = callerName,
             isCaller = senderName ?: false,
-            isGroupCall = isGroupCall ?: false,
+            isVideoCall = isVideoCall ?: false,
+            onCallEnd = {
+                navController.popBackStack()
+            },
+            viewModel = callViewModel
+        )
+    }
+}
+
+
+fun addOneToOneCallScreen(
+    navController: NavController,
+    navGraphBuilder: NavGraphBuilder,
+    callViewModel: CallViewModel
+) {
+    navGraphBuilder.composable(
+        route = NavRoute.OneToOne.path.plus("/{callId}/{myUserId}/{callerName}/{isCaller}/{isVideoCall}"),
+        arguments = listOf(
+            navArgument("callId") { type = NavType.StringType },
+            navArgument("myUserId") { type = NavType.StringType },
+            navArgument("callerName") { type = NavType.StringType },
+            navArgument("isCaller") { type = NavType.BoolType },
+            navArgument("isVideoCall") { type = NavType.BoolType }
+        )
+    ) {
+        val callId = it.arguments?.getString("callId").toString()
+        val myUserId = it.arguments?.getString("myUserId").toString()
+        val callerName = it.arguments?.getString("callerName").toString()
+        val isCaller = it.arguments?.getBoolean("isCaller")
+        val isVideoCall = it.arguments?.getBoolean("isVideoCall")
+
+        OneToOneCallScreen(
+            callId = callId,
+            myUserId = myUserId,
+            callerName = callerName,
+            isCaller = isCaller ?: false,
             isVideoCall = isVideoCall ?: false,
             onCallEnd = {
                 navController.popBackStack()

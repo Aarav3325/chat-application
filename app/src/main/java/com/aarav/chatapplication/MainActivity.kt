@@ -38,7 +38,6 @@ import com.aarav.chatapplication.presentation.navigation.NavRoute
 import com.aarav.chatapplication.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -216,25 +215,35 @@ class MainActivity : ComponentActivity() {
                         IncomingCallBanner(
                             callerName = if (callInfo?.callerName.isNullOrBlank())
                                 "User"
-                            else if(!callInfo?.callerName.isNullOrBlank() && callInfo?.groupCall == true) {
+                            else if (!callInfo?.callerName.isNullOrBlank() && callInfo?.groupCall == true) {
                                 "${callInfo?.callerName} started a group call"
-                            }
-                            else
+                            } else
                                 callInfo?.callerName!!,
                             onAccept = {
                                 showCallBanner = false
                                 callInfo?.let {
                                     navController.navigate(
-                                        NavRoute.Call
-                                            .createRoute(
-                                                callId = it.callId,
-                                                myUserId = currentUserId ?: "",
-                                                callerName = it.callerName ?: "User",
-                                                isCaller = false,
-                                                isGroupCall = it.groupCall,
-                                                isVideoCall = it.groupCall
-                                            )
+                                        if (it.groupCall) {
+                                            NavRoute.GroupCall
+                                                .createRoute(
+                                                    callId = it.callId,
+                                                    myUserId = currentUserId ?: "",
+                                                    callerName = it.callerName ?: "User",
+                                                    isCaller = false,
+                                                    isVideoCall = it.videoCall
+                                                )
+                                        } else {
+                                            NavRoute.OneToOne
+                                                .createRoute(
+                                                    callId = it.callId,
+                                                    myUserId = currentUserId ?: "",
+                                                    callerName = it.callerName ?: "User",
+                                                    isCaller = false,
+                                                    isVideoCall = it.videoCall
+                                                )
+                                        }
                                     )
+
                                 }
                             },
                             onDecline = {

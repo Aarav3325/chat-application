@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 
 @Composable
 fun MyAlertDialog(
@@ -37,14 +37,14 @@ fun MyAlertDialog(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )) {
-                    Text(confirmButtonText, fontFamily = manrope)
+                    Text(confirmButtonText, fontFamily = hankenGrotesk)
                 }
             },
             containerColor = MaterialTheme.colorScheme.background,
             title = {
                 Text(
                     text = title,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
@@ -60,7 +60,7 @@ fun MyAlertDialog(
             text = {
                 Text(
                     text = message,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     textAlign = TextAlign.Center,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground

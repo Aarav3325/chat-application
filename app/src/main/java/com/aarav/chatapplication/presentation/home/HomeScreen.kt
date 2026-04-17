@@ -45,7 +45,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -58,7 +57,7 @@ import com.aarav.chatapplication.presentation.components.MyAlertDialog
 import com.aarav.chatapplication.presentation.model.DirectChatEntry
 import com.aarav.chatapplication.presentation.model.GroupChatEntry
 import com.aarav.chatapplication.presentation.navigation.BottomNavigation
-import com.aarav.chatapplication.ui.theme.manrope
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 import com.posthog.PostHog
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -168,14 +167,14 @@ fun HomeScreen(
                     ) {
                         Text(
                             "New Group",
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             "Create a group chat with multiple people",
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -186,7 +185,7 @@ fun HomeScreen(
 
             Text(
                 "Direct Message",
-                fontFamily = manrope,
+                fontFamily = hankenGrotesk,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.secondary,
@@ -211,7 +210,7 @@ fun HomeScreen(
                         "Messages",
                         fontWeight = FontWeight.Bold,
                         fontSize = 28.sp,
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         color = Color(0xFF575459)
                     )
                 },
@@ -276,7 +275,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             "Recents",
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -361,7 +360,7 @@ fun DirectChatItem(
                 ) {
                     Text(
                         entry.otherUserName,
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurface
@@ -379,7 +378,7 @@ fun DirectChatItem(
 
                         Text(
                             "Online",
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF00FF85)
@@ -389,7 +388,7 @@ fun DirectChatItem(
 
                 Text(
                     entry.lastMessage,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 16.sp,
@@ -405,7 +404,7 @@ fun DirectChatItem(
             ) {
                 Text(
                     formatTimestamp(entry.lastTimestamp),
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -422,7 +421,7 @@ fun DirectChatItem(
                         ) {
                             Text(
                                 entry.unreadCount.toString(),
-                                fontFamily = manrope,
+                                fontFamily = hankenGrotesk,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.SemiBold,
@@ -484,7 +483,7 @@ fun GroupChatItem(
                 ) {
                     Text(
                         entry.groupName,
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -496,7 +495,7 @@ fun GroupChatItem(
                     ) {
                         Text(
                             "Group",
-                            fontFamily = manrope,
+                            fontFamily = hankenGrotesk,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -513,7 +512,7 @@ fun GroupChatItem(
 
                 Text(
                     displayMessage,
-                    fontFamily = manrope,
+                    fontFamily = hankenGrotesk,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 14.sp,
@@ -530,7 +529,7 @@ fun GroupChatItem(
                 if (entry.lastTimestamp > 0) {
                     Text(
                         formatTimestamp(entry.lastTimestamp),
-                        fontFamily = manrope,
+                        fontFamily = hankenGrotesk,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
@@ -548,7 +547,7 @@ fun GroupChatItem(
                         ) {
                             Text(
                                 entry.unreadCount.toString(),
-                                fontFamily = manrope,
+                                fontFamily = hankenGrotesk,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.SemiBold,

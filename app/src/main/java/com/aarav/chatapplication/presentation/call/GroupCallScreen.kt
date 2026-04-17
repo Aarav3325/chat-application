@@ -10,8 +10,6 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -72,26 +70,17 @@ import org.webrtc.VideoTrack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CallScreen(
+fun GroupCallScreen(
     callId: String,
     myUserId: String,
     callerName: String,
     isCaller: Boolean,
-    isGroupCall: Boolean,
     isVideoCall: Boolean,
     onCallEnd: () -> Unit,
     viewModel: CallViewModel
 ) {
 
     val context = LocalContext.current
-
-//    val localView = remember {
-//        SurfaceViewRenderer(context)
-//    }
-//
-//    val remoteView = remember {
-//        SurfaceViewRenderer(context)
-//    }
 
     val eglBaseContext by viewModel.eglContext.collectAsState()
 
@@ -103,14 +92,6 @@ fun CallScreen(
     val isMuted by viewModel.isMuted.collectAsState()
 
     var isSpeakerOn by remember { mutableStateOf(true) }
-
-    var videoReady by remember { mutableStateOf(false) }
-
-    val videoAlpha by animateFloatAsState(
-        targetValue = if (videoReady) 1f else 0f,
-        label = "videoAlpha",
-        animationSpec = tween(durationMillis = 700),
-    )
 
     val time by viewModel.callTime.collectAsState()
 
@@ -324,16 +305,16 @@ fun CallScreen(
                     Text(
                         text = when (state) {
                             "CALLING" -> "Calling..."
-                            "RECEIVING" -> "Receiving Call..."
+                            "RECEIVING" -> "Receiving GroupCall..."
                             "CONNECTING" -> "Connecting..."
                             "CONNECTED" -> "Connected"
                             "DISCONNECTED" -> "Disconnected"
                             "FAILED" -> "Failed"
-                            "CLOSED", "ENDED" -> "Call Ended"
+                            "CLOSED", "ENDED" -> "GroupCall Ended"
                             "BUSY" -> "User is Busy"
-                            "REJECTED" -> "Call Declined"
-                            "MISSED" -> "Missed Call"
-                            "IDLE" -> if (callEnded) "Call Ended" else "Initializing..."
+                            "REJECTED" -> "GroupCall Declined"
+                            "MISSED" -> "Missed GroupCall"
+                            "IDLE" -> if (callEnded) "GroupCall Ended" else "Initializing..."
                             else -> "Initializing..."
                         },
                         color = Color.White,
@@ -426,17 +407,19 @@ fun CallActionToolbar(
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        IconButton(
-            onClick = toggleCamera,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = enabledContainer,
-                contentColor = contentColor
-            ),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.flip_camera),
-                contentDescription = "Switch Camera"
-            )
+        if (isVideoCall) {
+            IconButton(
+                onClick = toggleCamera,
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = enabledContainer,
+                    contentColor = contentColor
+                ),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.flip_camera),
+                    contentDescription = "Switch Camera"
+                )
+            }
         }
 
 
@@ -498,7 +481,7 @@ fun CallActionToolbar(
         ) {
             Icon(
                 painter = painterResource(R.drawable.end_call),
-                contentDescription = "End Call",
+                contentDescription = "End GroupCall",
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -731,9 +714,6 @@ fun VideoItem(
     val view = remember(eglBaseContext) {
         SurfaceViewRenderer(context)
     }
-
-
-
 
 
     DisposableEffect(eglBaseContext) {
