@@ -2,6 +2,7 @@ package com.aarav.chatapplication.presentation.auth
 
 import android.app.Activity
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,6 +82,7 @@ fun AuthScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -141,7 +143,7 @@ fun AuthScreen(
                 maxLines = 1,
                 shape = RoundedCornerShape(14.dp),
                 placeholder = {
-                    Text("Enter phone number", fontFamily = hankenGrotesk)
+                    Text("Enter phone number", fontFamily = hankenGrotesk, color = MaterialTheme.colorScheme.onBackground)
                 },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,

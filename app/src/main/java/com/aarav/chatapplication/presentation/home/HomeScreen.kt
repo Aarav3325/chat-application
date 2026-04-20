@@ -269,7 +269,7 @@ fun HomeScreen(
 
                 item {
                     Surface(
-                        shape = RoundedCornerShape(28.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp)
                     ) {

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -625,6 +626,101 @@ fun IncomingCallBanner(
             }
         }
     }
+}
+
+@Composable
+fun SmartVideoGrid(
+    tracks: Map<String, VideoTrack>,
+    isLocalVideoEnabled: Boolean,
+    myUserId: String,
+    context: Context,
+    eglBaseContext: EglBase.Context
+) {
+
+    val users = tracks.entries.toList()
+    val count = users.size
+    val columns = kotlin.math.ceil(kotlin.math.sqrt(count.toDouble())).toInt()
+    val rows = kotlin.math.ceil(count / columns.toDouble()).toInt()
+
+    when (count) {
+
+        0 -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Waiting for users...")
+            }
+        }
+
+        1 -> {
+            VideoItem(
+                users[0].value,
+                isLocalVideoEnabled,
+                users[0].key,
+                myUserId,
+                context,
+                eglBaseContext,
+                Modifier.fillMaxSize()
+            )
+        }
+
+        2 -> {
+            Column(Modifier.fillMaxSize()) {
+                users.forEach {
+                    VideoItem(
+                        it.value,
+                        isLocalVideoEnabled,
+                        it.key,
+                        myUserId,
+                        context,
+                        eglBaseContext,
+                        Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        else -> {
+            Column(Modifier.fillMaxSize()) {
+
+                var index = 0
+
+                repeat(rows) { rowIndex ->
+
+                    val remaining = count - index
+                    val itemsInThisRow = if (rowIndex == rows - 1) {
+                        remaining
+                    } else {
+                        columns
+                    }
+
+                    Row(
+                        modifier = Modifier.weight(1f)
+                    ) {
+
+                        repeat(itemsInThisRow) {
+
+                            val user = users[index]
+
+                            VideoItem(
+                                track = user.value,
+                                isLocalVideoEnabled = isLocalVideoEnabled,
+                                userId = user.key,
+                                myUserId = myUserId,
+                                context = context,
+                                eglBaseContext = eglBaseContext,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+
+                            index++
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 }
 
 @Composable

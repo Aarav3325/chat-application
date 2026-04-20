@@ -1,5 +1,6 @@
 package com.aarav.chatapplication.presentation.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,6 +73,7 @@ fun OPTScreen(
 
     Column(
         modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 72.dp)
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -107,7 +109,8 @@ fun OPTScreen(
         Spacer(Modifier.height(54.dp))
 
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             FilledTonalButton(
@@ -132,7 +135,7 @@ fun OPTScreen(
 
             Text(
                 text = "Expires in $timeLeft seconds",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                 fontSize = 14.sp,
             )
         }
@@ -180,7 +183,8 @@ fun OtpInput(
                     Text(
                         text = otp.getOrNull(index)?.toString() ?: "",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }

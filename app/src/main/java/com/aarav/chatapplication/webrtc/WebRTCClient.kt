@@ -87,8 +87,7 @@ class WebRTCClient
 
         _connectionState.value = "NEW"
 
-
-        Log.d("WEBRTC", "Initializing WebRTC (ONCE)")
+        Log.d(TAG, "Initializing WebRTC (Singleton)")
 
 
         PeerConnectionFactory.initialize(
@@ -119,20 +118,6 @@ class WebRTCClient
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
             .createPeerConnectionFactory()
 
-
-
-//        val constraints = MediaConstraints().apply {
-//            mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
-//            mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
-//            mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
-//            mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
-//        }
-//
-//        localAudioSource = factory.createAudioSource(constraints)
-//        localAudioTrack = factory.createAudioTrack("audioTrack", localAudioSource)
-//        localAudioTrack?.setEnabled(true)
-//        configureAudioForCall()
-
     }
 
     fun createPeerConnection(userId: String) {
@@ -145,14 +130,6 @@ class WebRTCClient
             Log.d(TAG, "PC already exists for $userId: skipping")
             return
         }
-
-//        if (localAudioTrack == null || localVideoTrack == null) {
-//            Log.e(
-//                TAG,
-//                "Tracks not ready: skipping PC creation for $userId (audio=${localAudioTrack != null}, video=${localVideoTrack != null})"
-//            )
-//            return
-//        }
 
         val iceServers = listOf(
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302")
@@ -179,7 +156,7 @@ class WebRTCClient
 
         peerConnections[userId] = pc
         remoteDescriptionSet.remove(userId)
-        Log.d("MESH", "✓ PeerConnection CREATED for $userId (total PCs: ${peerConnections.size})")
+        Log.d(TAG, "PeerConnection CREATED for $userId (total PCs: ${peerConnections.size})")
     }
 
     fun createAudioTrack() {
@@ -577,7 +554,6 @@ class WebRTCClient
     fun closeConnection() {
 
         try {
-
 
             isClosingAllConnections = true
             peerConnections.values.toList().forEach {
