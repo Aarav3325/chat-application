@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -32,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -55,16 +58,36 @@ fun OneToOneCallScreen(
 ) {
     val context = LocalContext.current
 
+
+    val eglBaseContext by viewModel.eglContext.collectAsState()
+
     val localView = remember {
-        SurfaceViewRenderer(context)
+        SurfaceViewRenderer(context).apply {
+            clipToOutline = true
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, 16f * context.resources.displayMetrics.density)
+                }
+            }
+            addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                v.invalidateOutline()
+            }
+        }
     }
 
     val remoteView = remember {
-        SurfaceViewRenderer(context)
+        SurfaceViewRenderer(context).apply {
+            clipToOutline = true
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, 16f * context.resources.displayMetrics.density)
+                }
+            }
+            addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                v.invalidateOutline()
+            }
+        }
     }
-
-
-    val eglBaseContext by viewModel.eglContext.collectAsState()
 
     val state by viewModel.callState.collectAsState()
 
@@ -79,6 +102,11 @@ fun OneToOneCallScreen(
 
 
     val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
+    val mediaStates by viewModel.mediaStates.collectAsState()
+
+    val remoteUserId = tracks.keys.firstOrNull { it != "LOCAL" } ?: mediaStates.keys.firstOrNull { it != myUserId }
+    val isRemoteVideoEnabled = remoteUserId?.let { mediaStates[it]?.videoEnabled } ?: true
+    val isRemoteMuted = remoteUserId?.let { mediaStates[it]?.muted } ?: false
 
 
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -174,7 +202,7 @@ fun OneToOneCallScreen(
             val localTrack = tracks["LOCAL"]
             localTrack?.let {
                 try {
-                    it.addSink(localView)
+                    localTrack.addSink(localView)
                 } catch (_: Exception) {
                 }
             }
@@ -198,13 +226,15 @@ fun OneToOneCallScreen(
             remoteView.init(eglBaseContext, null)
             remoteView.setMirror(false)
             remoteView.setEnableHardwareScaler(true)
-            remoteView.setZOrderOnTop(false)
             remoteView.setZOrderMediaOverlay(false)
+            remoteView.setZOrderOnTop(false)
+
 
             localView.init(eglBaseContext, null)
             localView.setMirror(true)
-            localView.setEnableHardwareScaler(true)
+            localView.setZOrderOnTop(true)
             localView.setZOrderMediaOverlay(true)
+            localView.setEnableHardwareScaler(true)
         }
     }
 
@@ -261,21 +291,68 @@ fun OneToOneCallScreen(
 
             if (isVideoCall) {
 
-                AndroidView(
-                    factory = { remoteView },
-                    modifier = Modifier
-                        .fillMaxSize()
-                )
+                Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
+                    AndroidView(
+                        factory = { remoteView },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    if (!isRemoteVideoEnabled) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    painter = painterResource(R.drawable.camera_off),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    callerName,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 18.sp
+                                )
+                            }
+                        }
+                    }
+
+                    if (isRemoteMuted) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(bottom = 140.dp, start = 16.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.microphone_off),
+                                contentDescription = "Muted",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Muted",
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
 
                 if (isVideoEnabled) {
                     AndroidView(
                         factory = { localView },
                         modifier = Modifier
                             .padding(top = 78.dp, end = 16.dp)
-                            .clip(RoundedCornerShape(16.dp))
                             .size(120.dp, 160.dp)
                             .align(Alignment.TopEnd)
-                            .background(Color.Black)
                     )
                 } else {
                     Box(

@@ -797,78 +797,6 @@ fun SmartVideoGrid(
         }
     }
 
-
-}
-
-@Composable
-fun VideoGrid(
-    tracks: Map<String, VideoTrack>,
-    isLocalVideoEnabled: Boolean,
-    myUserId: String,
-    context: Context,
-    eglBaseContext: EglBase.Context
-) {
-    val users = tracks.entries.toList()
-
-    Log.d("VIDEO", "size: ${users.size}")
-
-    when (users.size) {
-        0 -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Waiting for users...")
-            }
-        }
-
-        1 -> {
-            VideoItem(
-                users[0].value,
-                isLocalVideoEnabled,
-                users[0].key,
-                myUserId,
-                context,
-                eglBaseContext,
-                null,
-                Modifier.fillMaxSize()
-            )
-        }
-
-        2 -> {
-            Column(Modifier.fillMaxSize()) {
-                users.forEach {
-                    VideoItem(
-                        it.value,
-                        isLocalVideoEnabled,
-                        it.key,
-                        myUserId,
-                        context,
-                        eglBaseContext,
-                        null,
-                        Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-
-        else -> {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(users) {
-                    VideoItem(
-                        it.value,
-                        isLocalVideoEnabled,
-                        it.key,
-                        myUserId,
-                        context,
-                        eglBaseContext,
-                        null,
-                        Modifier.aspectRatio(1f)
-                    )
-                }
-            }
-        }
-    }
 }
 
 
@@ -895,6 +823,9 @@ fun VideoItem(
                 override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
                     outline.setRoundRect(0, 0, view.width, view.height, 16f * context.resources.displayMetrics.density)
                 }
+            }
+            addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                v.invalidateOutline()
             }
         }
     }
@@ -990,24 +921,3 @@ fun VideoItem(
         }
     }
 }
-
-//@Composable
-//fun LocalPreview(
-//    localTrack: VideoTrack
-//) {
-//    Box(
-//        modifier = Modifier
-//            .size(120.dp)
-//            .clip(RoundedCornerShape(16.dp))
-//    ) {
-//        AndroidView(
-//            factory = { context ->
-//                SurfaceViewRenderer(context).apply {
-//                    init(EglBase.create().eglBaseContext, null)
-//                    setMirror(true)
-//                    localTrack.addSink(this)
-//                }
-//            }
-//        )
-//    }
-//}
