@@ -8,16 +8,27 @@ import com.aarav.chatapplication.data.model.CallHistoryModel
 import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.IceCandidateModel
 import com.aarav.chatapplication.data.model.OfferModel
+import com.aarav.chatapplication.domain.model.User
+import com.aarav.chatapplication.domain.repository.ChatListRepository
+import com.aarav.chatapplication.domain.repository.GroupChatRepository
+import com.aarav.chatapplication.domain.repository.UserRepository
+import com.aarav.chatapplication.presentation.model.DirectChatEntry
+import com.aarav.chatapplication.presentation.model.GroupChatEntry
 import com.aarav.chatapplication.webrtc.CallStateManager
 import com.aarav.chatapplication.webrtc.SignalingClient
 import com.aarav.chatapplication.webrtc.WebRTCClient
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.timeout
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.webrtc.VideoTrack
 import javax.inject.Inject
@@ -27,6 +38,7 @@ import kotlin.String
 import kotlin.collections.listOf
 import kotlin.collections.mutableMapOf
 import kotlin.collections.mutableSetOf
+import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "CONNECTION"
 
@@ -34,7 +46,8 @@ private const val TAG = "CONNECTION"
 class CallViewModel @Inject constructor(
     private val signalingClient: SignalingClient,
     private val webRTCClient: WebRTCClient,
-    private val callStateManager: CallStateManager
+    private val callStateManager: CallStateManager,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private var isCaller = false
@@ -44,6 +57,12 @@ class CallViewModel @Inject constructor(
     private val peerCreated = mutableSetOf<String>()
 
     private val connectionQueue = ArrayDeque<String>()
+
+    private val _availableUsers = MutableStateFlow<List<User>>(emptyList())
+    val availableUsers = _availableUsers.asStateFlow()
+
+    private val currentParticipants = mutableSetOf<String>()
+
     private var isProcessing = false
 
     private var timerStarted = false
@@ -141,7 +160,8 @@ class CallViewModel @Inject constructor(
         activeCallerId = call.callerId
         activeReceiverId = call.participants.keys.firstOrNull { it != myUserId } ?: ""
         //activeReceiverId = call.participants.firstOrNull { it != myUserId } ?: ""
-
+        currentParticipants.clear()
+        currentParticipants.add(myUserId)
         Log.d(TAG, "[$myUserId] STARTING CALL ${call.callId} | participants=${call.participants}")
 
         callStateManager.updateState("CALLING")
@@ -185,7 +205,8 @@ class CallViewModel @Inject constructor(
         activeCallId = callId
         callStateManager.activeCallId = callId
         activeReceiverId = myUserId
-
+        currentParticipants.clear()
+        currentParticipants.add(myUserId)
         Log.d(TAG, "[$myUserId] RECEIVING CALL $callId")
 
         callStateManager.updateState("RECEIVING")
@@ -361,6 +382,9 @@ class CallViewModel @Inject constructor(
 
                 if (isJoin) {
 
+
+                    currentParticipants.add(peerId)
+
                     if (peerCreated.contains(peerId)) return@collect
 
                     val iAmInitiator = myUserId < peerId
@@ -374,6 +398,7 @@ class CallViewModel @Inject constructor(
 
                 } else {
 
+                    currentParticipants.remove(peerId)
                     Log.d(TAG, "[$myUserId] LEAVE → removing $peerId")
 
                     webRTCClient.removePeerConnection(peerId)
@@ -477,6 +502,7 @@ class CallViewModel @Inject constructor(
             _callEnded.value = true
             cleanupJobs()
             signalingClient.cleanupCallData(callId)
+            currentParticipants.clear()
             activeCallId = null
             callStateManager.updateState("IDLE")
             isEnding = false
@@ -504,7 +530,7 @@ class CallViewModel @Inject constructor(
             _callEnded.value = true
 
             cleanupJobs()
-
+            currentParticipants.clear()
             activeCallId = null
             callStateManager.updateState("IDLE")
 
@@ -530,12 +556,42 @@ class CallViewModel @Inject constructor(
             _events.trySend(UiEvent.EndCall)
             _callEnded.value = true
             cleanupJobs()
+            currentParticipants.clear()
             signalingClient.cleanupCallData(callId)
             activeCallId = null
             callStateManager.updateState("IDLE")
             isEnding = false
         }
     }
+
+    fun onAddParticipantClicked() {
+        loadAvailableUsers(myUserId, currentParticipants)
+    }
+
+    fun addParticipants(userIds: List<String>) {
+        val callId = activeCallId ?: return
+
+        viewModelScope.launch {
+            userIds.forEach {
+                signalingClient.addParticipant(callId, it)
+            }
+        }
+    }
+
+    fun loadAvailableUsers(currentUserId: String, existing: Set<String>) {
+        viewModelScope.launch {
+            userRepository.getAllUsers().collect { users ->
+
+                val filtered = users.filter {
+                    it.uid != currentUserId &&
+                            !existing.contains(it.uid)
+                }
+
+                _availableUsers.value = filtered
+            }
+        }
+    }
+
 
     private fun saveHistoryIfNeeded(finalStatus: String) {
         if (!isCaller) return

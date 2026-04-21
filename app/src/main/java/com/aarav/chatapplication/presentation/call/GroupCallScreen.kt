@@ -43,12 +43,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,6 +65,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.aarav.chatapplication.R
+import com.aarav.chatapplication.presentation.components.AddParticipantsSheet
+import com.aarav.chatapplication.presentation.components.CreateChatModalSheet
+import com.aarav.chatapplication.presentation.components.CustomBottomSheet
+import com.aarav.chatapplication.ui.theme.hankenGrotesk
 import com.aarav.chatapplication.utils.formatTime
 import kotlinx.coroutines.delay
 import org.webrtc.EglBase
@@ -90,6 +96,10 @@ fun GroupCallScreen(
 
     val tracks by viewModel.tracks.collectAsState()
 
+    val availableUsers by viewModel.availableUsers.collectAsState()
+
+    val selectedUsers = remember { mutableStateListOf<String>() }
+
     val callEnded by viewModel.callEnded.collectAsState()
     val isMuted by viewModel.isMuted.collectAsState()
 
@@ -99,6 +109,9 @@ fun GroupCallScreen(
 
 
     val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
+
+    var showSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
 
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -122,6 +135,7 @@ fun GroupCallScreen(
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         audioManager.isSpeakerphoneOn = isSpeakerOn
         audioManager.isMicrophoneMute = false
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             audioManager.requestAudioFocus(focusRequest!!)
@@ -239,6 +253,27 @@ fun GroupCallScreen(
     }
 
 
+    if(showSheet) {
+        CustomBottomSheet(
+            sheetState = sheetState,
+            onDismiss = {
+                showSheet = false
+            },
+            title = "Add Participant"
+        ) {
+
+            AddParticipantsSheet(
+                userList = availableUsers,
+                onDismiss = { showSheet = false },
+                onAddClick = { selectedIds ->
+                    viewModel.addParticipants(selectedIds)
+                    showSheet = false
+                }
+            )
+        }
+    }
+
+
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -332,6 +367,24 @@ fun GroupCallScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
+                }
+
+                IconButton(
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.7f),
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    onClick = {
+                        viewModel.onAddParticipantClicked()
+                        showSheet = true
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.add_user),
+                        contentDescription = "Add Participant",
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
@@ -478,6 +531,8 @@ fun CallActionToolbar(
             )
         }
 
+
+
         VerticalDivider(
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.height(32.dp)
@@ -489,10 +544,9 @@ fun CallActionToolbar(
                 contentColor = MaterialTheme.colorScheme.onError
             ),
             onClick = {
-                if(isGroupCall && !isCaller) {
+                if (isGroupCall && !isCaller) {
                     leaveCall()
-                }
-                else {
+                } else {
                     onEndCallClick()
                 }
             },

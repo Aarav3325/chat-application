@@ -82,6 +82,29 @@ class UserRepositoryImpl @Inject constructor(
         awaitClose { userReference.removeEventListener(listener) }
     }
 
+    override fun getAllUsers(): Flow<List<User>> = callbackFlow {
+
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val users = snapshot.children.mapNotNull {
+                    it.getValue(User::class.java)
+                }
+                trySend(users)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        userReference.addValueEventListener(listener)
+
+        awaitClose {
+            userReference.removeEventListener(listener)
+        }
+    }
+
     override fun findUserByUserId(userId: String): Flow<User> =
         callbackFlow {
             val snapshot = userReference.child(userId)

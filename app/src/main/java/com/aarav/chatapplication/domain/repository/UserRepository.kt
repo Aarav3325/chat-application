@@ -13,5 +13,7 @@ interface UserRepository {
 
     fun findUserByUserId(userId: String): Flow<User>
 
+    fun getAllUsers(): Flow<List<User>>
+
     fun getCurrentUser(): Result<String?>
 }
