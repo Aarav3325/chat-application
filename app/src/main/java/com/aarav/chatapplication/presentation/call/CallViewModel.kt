@@ -332,7 +332,9 @@ class CallViewModel @Inject constructor(
                 // OFFERS: process offers addressed to me
                 call.offers.forEach { (key, offer) ->
                     if (!key.endsWith("_$myUserId")) return@forEach
-                    if (!handledOfferKeys.add(key)) return@forEach
+                    
+                    val offerHash = "${key}_${offer.sdp.hashCode()}"
+                    if (!handledOfferKeys.add(offerHash)) return@forEach
 
                     val senderId = offer.senderId
                     Log.d(TAG, "[$myUserId]: OFFER received from $senderId (key=$key)")
@@ -357,17 +359,24 @@ class CallViewModel @Inject constructor(
 
                 // ANSWERS: process answers addressed to me
                 call.answers.forEach { (key, answer) ->
-                    if (!key.endsWith("_$myUserId")) return@forEach
-                    if (!handledAnswerKeys.add(key)) return@forEach
+                    val parts = key.split("_")
+                    if (parts.size != 2) return@forEach
 
-                    val senderId = key.removeSuffix("_$myUserId")
+                    val senderId = parts[0]
+                    val receiverId = parts[1]
+
+                    if (receiverId != myUserId) return@forEach
+                    
+                    val answerHash = "${key}_${answer.hashCode()}"
+                    if (!handledAnswerKeys.add(answerHash)) return@forEach
+
                     Log.d(TAG, "[$myUserId]: ANSWER received from $senderId (key=$key)")
-
                     if (!isAnswered) {
                         isAnswered = true
                         timeoutJob?.cancel()
                     }
                     callStateManager.updateState("CONNECTING")
+
                     webRTCClient.onAnswerReceived(senderId, answer)
                 }
 
