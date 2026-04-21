@@ -239,11 +239,13 @@ fun ChatScreen(
                         IconButton(
                             onClick = {
 
+                                val participants = listOf(myId, otherUserId).associateWith { true }
+
                                 val call = CallModel(
                                     callId = chatId,
                                     callerId = myId,
                                     callerName = currentUsername,
-                                    participants = listOf(myId, otherUserId),
+                                    participants = participants,
                                     groupCall = false,
                                     videoCall = true
                                 )
@@ -269,11 +271,13 @@ fun ChatScreen(
                         IconButton(
                             onClick = {
 
+                                val participants = listOf(myId, otherUserId).associateWith { true }
+
                                 val call = CallModel(
                                     callId = chatId,
                                     callerId = myId,
                                     callerName = currentUsername,
-                                    participants = listOf(myId, otherUserId),
+                                    participants = participants,
                                     groupCall = false,
                                     videoCall = false
                                 )

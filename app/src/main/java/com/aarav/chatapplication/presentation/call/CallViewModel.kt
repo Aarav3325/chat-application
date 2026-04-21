@@ -15,9 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -81,6 +79,7 @@ class CallViewModel @Inject constructor(
 
     private var connectionJob: Job? = null
     private var signalingJob: Job? = null
+    private var participantJob: Job? = null
     private var iceOutgoingJob: Job? = null
     private var iceIncomingJob: Job? = null
     private var timerJob: Job? = null
@@ -113,7 +112,16 @@ class CallViewModel @Inject constructor(
                             callStateManager.updateState("CONNECTED")
                             startTimer()
                         }
-                        "DISCONNECTED" -> callStateManager.updateState("DISCONNECTED")
+                        "DISCONNECTED" -> {
+                            if (tracks.value.isNotEmpty()) {
+                                callStateManager.updateState("CONNECTED")
+                            } else {
+                                callStateManager.updateState("DISCONNECTED")
+                            }
+                        }
+//                        "DISCONNECTED" -> {
+//                            callStateManager.updateState("DISCONNECTED")
+//                        }
                         "FAILED" -> callStateManager.updateState("FAILED")
                         "NEW" -> {}
                         else -> callStateManager.updateState("CONNECTING")
@@ -131,7 +139,8 @@ class CallViewModel @Inject constructor(
         activeCallId = call.callId
         callStateManager.activeCallId = call.callId
         activeCallerId = call.callerId
-        activeReceiverId = call.participants.firstOrNull { it != myUserId } ?: ""
+        activeReceiverId = call.participants.keys.firstOrNull { it != myUserId } ?: ""
+        //activeReceiverId = call.participants.firstOrNull { it != myUserId } ?: ""
 
         Log.d(TAG, "[$myUserId] STARTING CALL ${call.callId} | participants=${call.participants}")
 
@@ -149,9 +158,12 @@ class CallViewModel @Inject constructor(
 
             signalingClient.createCall(call)
 
-            val others = call.participants.filter { it != myUserId }
-            Log.d(TAG, "[$myUserId] Will send offers to: $others")
-            others.forEach { userId -> enqueue(userId) }
+//            val others = call.participants.filter { it != myUserId }
+//            others.forEach { userId -> enqueue(userId) }
+
+//            val others = call.participants.keys.filter { it != myUserId }
+//            Log.d(TAG, "[$myUserId] Will send offers to: $others")
+//            others.forEach { enqueue(it) }
 
             startObservers(call.callId)
         }
@@ -258,6 +270,7 @@ class CallViewModel @Inject constructor(
 
     private fun startObservers(callId: String) {
         signalingJob?.cancel()
+        participantJob?.cancel()
         iceOutgoingJob?.cancel()
         iceIncomingJob?.cancel()
 
@@ -280,20 +293,20 @@ class CallViewModel @Inject constructor(
                     }
                     return@collect
                 }
-
-                // MESH: discover new participants and decide who offers
-                call.participants.forEach { peerId ->
-                    if (peerId == myUserId) return@forEach
-                    if (peerCreated.contains(peerId)) return@forEach
-
-                    val iAmInitiator = isCaller || myUserId < peerId
-                    if (iAmInitiator) {
-                        Log.d(TAG, "[$myUserId] Mesh: I should offer to $peerId (isCaller=$isCaller, myId<peerId=${myUserId < peerId})")
-                        enqueue(peerId)
-                    } else {
-                        Log.d(TAG, "[$myUserId] Mesh: waiting for $peerId to offer to me")
-                    }
-                }
+//
+//                // MESH: discover new participants and decide who offers
+//                call.participants.forEach { peerId ->
+//                    if (peerId == myUserId) return@forEach
+//                    if (peerCreated.contains(peerId)) return@forEach
+//
+//                    val iAmInitiator = isCaller || myUserId < peerId
+//                    if (iAmInitiator) {
+//                        Log.d(TAG, "[$myUserId] Mesh: I should offer to $peerId (isCaller=$isCaller, myId<peerId=${myUserId < peerId})")
+//                        enqueue(peerId)
+//                    } else {
+//                        Log.d(TAG, "[$myUserId] Mesh: waiting for $peerId to offer to me")
+//                    }
+//                }
 
                 // OFFERS: process offers addressed to me
                 call.offers.forEach { (key, offer) ->
@@ -338,6 +351,35 @@ class CallViewModel @Inject constructor(
                 }
 
                 Log.d(TAG, "[$myUserId] Status: peers=${peerCreated.toList()}, offers=${handledOfferKeys.toList()}, answers=${handledAnswerKeys.toList()}")
+            }
+        }
+
+        participantJob = viewModelScope.launch {
+            signalingClient.listenForParticipants(callId).collect { (peerId, isJoin) ->
+
+                if (peerId == myUserId) return@collect
+
+                if (isJoin) {
+
+                    if (peerCreated.contains(peerId)) return@collect
+
+                    val iAmInitiator = myUserId < peerId
+
+                    if (iAmInitiator) {
+                        Log.d(TAG, "[$myUserId] JOIN → connecting to $peerId")
+                        enqueue(peerId)
+                    } else {
+                        Log.d(TAG, "[$myUserId] JOIN → waiting for $peerId")
+                    }
+
+                } else {
+
+                    Log.d(TAG, "[$myUserId] LEAVE → removing $peerId")
+
+                    webRTCClient.removePeerConnection(peerId)
+                    peerCreated.remove(peerId)
+                    connectionQueue.remove(peerId)
+                }
             }
         }
 
@@ -441,6 +483,35 @@ class CallViewModel @Inject constructor(
         }
     }
 
+    fun leaveCall(callId: String) {
+        if (isEnding) return
+
+        isEnding = true
+
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "[$myUserId] Leaving call $callId")
+
+                signalingClient.removeParticipant(callId, myUserId)
+
+                webRTCClient.closeConnection()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error leaving call", e)
+            }
+
+            _events.trySend(UiEvent.EndCall)
+            _callEnded.value = true
+
+            cleanupJobs()
+
+            activeCallId = null
+            callStateManager.updateState("IDLE")
+
+            isEnding = false
+        }
+    }
+
     private fun finishCall(callId: String, statusString: String = "ENDED") {
         if (isEnding) return
 
@@ -491,6 +562,9 @@ class CallViewModel @Inject constructor(
 
         iceOutgoingJob?.cancel()
         iceOutgoingJob = null
+
+        participantJob?.cancel()
+        participantJob = null
 
         iceIncomingJob?.cancel()
         iceIncomingJob = null

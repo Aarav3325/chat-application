@@ -212,13 +212,15 @@ fun GroupChatScreen(
                                 val members = uiState.group?.members
                                 val participantList = members?.keys?.toList()
 
+                                val final = participantList?.associateWith { true }
+
                                 scope.launch {
-                                    participantList?.let {
+                                    final?.let {
                                         val call = CallModel(
                                             callId = groupId,
                                             callerId = myId,
                                             callerName = senderName,
-                                            participants = it,
+                                            participants = final,
                                             videoCall = true,
                                             groupCall = true,
                                         )
@@ -249,8 +251,10 @@ fun GroupChatScreen(
                                 val members = uiState.group?.members
                                 val participantList = members?.keys?.toList()
 
+                                val final = participantList?.associateWith { true }
+
                                 scope.launch {
-                                    participantList?.let {
+                                    final?.let {
                                         val call = CallModel(
                                             callId = groupId,
                                             callerId = myId,

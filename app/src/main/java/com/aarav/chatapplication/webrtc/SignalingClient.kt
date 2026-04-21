@@ -91,6 +91,55 @@ class SignalingClient
         }
     }
 
+    fun listenForParticipants(callId: String): Flow<Pair<String, Boolean>> = callbackFlow {
+
+        val ref = callRef.child(callId).child("participants")
+
+        val listener = object : ChildEventListener {
+
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val userId = snapshot.key ?: return
+                Log.d("MESH", "JOIN EVENT: $userId")
+                trySend(userId to true)
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                val userId = snapshot.key ?: return
+                Log.d("MESH", "LEAVE EVENT: $userId")
+                trySend(userId to false)
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addChildEventListener(listener)
+
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
+    }
+
+    suspend fun addParticipant(callId: String, userId: String) {
+        callRef.child(callId)
+            .child("participants")
+            .child(userId)
+            .setValue(true)
+            .await()
+    }
+
+    suspend fun removeParticipant(callId: String, userId: String) {
+        callRef.child(callId)
+            .child("participants")
+            .child(userId)
+            .removeValue()
+            .await()
+    }
+
     fun listenForIncomingCalls(userId: String): Flow<CallModel> = callbackFlow {
 
         val listener = object : ChildEventListener {

@@ -56,6 +56,8 @@ class WebRTCClient
     private val _connectionState = MutableStateFlow("NEW")
     val connectionState = _connectionState.asStateFlow()
 
+    private var isMuted = false
+
     private var localAudioTrack: AudioTrack? = null
     var localVideoTrack: VideoTrack? = null
     private var localVideoSource: org.webrtc.VideoSource? = null
@@ -118,6 +120,10 @@ class WebRTCClient
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
             .createPeerConnectionFactory()
 
+        if (localAudioTrack == null) {
+            createAudioTrack()
+        }
+
     }
 
     fun createPeerConnection(userId: String) {
@@ -148,10 +154,10 @@ class WebRTCClient
             return
         }
 
-        createAudioTrack()
+        //createAudioTrack()
 
         localAudioTrack?.let { pc.addTrack(it, streamIds) }
-        localAudioTrack?.setEnabled(true)
+        //localAudioTrack?.setEnabled(true)
         localVideoTrack?.let { pc.addTrack(it, streamIds) }
 
         peerConnections[userId] = pc
@@ -261,7 +267,7 @@ class WebRTCClient
     }
 
     fun enableAllAudio() {
-        localAudioTrack?.setEnabled(true)
+        localAudioTrack?.setEnabled(!isMuted)
         remoteAudioTracks.forEach { (uid, track) ->
             track.setEnabled(true)
             track.setVolume(10.0)
@@ -357,7 +363,9 @@ class WebRTCClient
     }
 
     fun toggleMute(isMuted: Boolean) {
+        this.isMuted = isMuted
         Log.d("CALL", "MUTE: $isMuted")
+
         localAudioTrack?.setEnabled(!isMuted)
     }
 
@@ -606,7 +614,10 @@ class WebRTCClient
         pendingIceCandidates.remove(userId)
         remoteDescriptionSet.remove(userId)
         remoteAudioTracks.remove(userId)
-        _allTracks.value = _allTracks.value.toMutableMap().apply { remove(userId) }
+        _allTracks.value = _allTracks.value
+            .filterKeys { it != userId }
+            .toMap()
+        //_allTracks.value = _allTracks.value.toMutableMap().apply { remove(userId) }
     }
 
     private fun applyBufferedIceCandidates(userId: String) {

@@ -48,6 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -253,13 +254,15 @@ fun GroupCallScreen(
 
 
             if (eglBaseContext != null) {
-                VideoGrid(
-                    tracks,
-                    isVideoEnabled,
-                    myUserId,
-                    context,
-                    eglBaseContext!!
-                )
+                key(tracks.size) {
+                    SmartVideoGrid(
+                        tracks,
+                        isVideoEnabled,
+                        myUserId,
+                        context,
+                        eglBaseContext!!
+                    )
+                }
             }
 
 //            AndroidView(
@@ -336,6 +339,8 @@ fun GroupCallScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 54.dp),
+                isGroupCall = true,
+                isCaller = isCaller,
                 isMicEnabled = !isMuted,
                 isSpeakerOn = isSpeakerOn,
                 isVideoEnabled = isVideoEnabled,
@@ -347,6 +352,9 @@ fun GroupCallScreen(
                 },
                 onEndCallClick = {
                     viewModel.endCall(callId)
+                },
+                leaveCall = {
+                    viewModel.leaveCall(callId)
                 },
                 toggleVideo = {
                     viewModel.toggleVideo()
@@ -382,6 +390,8 @@ fun GroupCallScreen(
 @Composable
 fun CallActionToolbar(
     modifier: Modifier = Modifier,
+    isCaller: Boolean,
+    isGroupCall: Boolean,
     isMicEnabled: Boolean,
     isSpeakerOn: Boolean,
     isVideoEnabled: Boolean,
@@ -389,6 +399,7 @@ fun CallActionToolbar(
     onMicClick: () -> Unit,
     onSpeakerClick: () -> Unit,
     onEndCallClick: () -> Unit,
+    leaveCall: () -> Unit,
     toggleVideo: () -> Unit,
     toggleCamera: () -> Unit
 ) {
@@ -477,7 +488,14 @@ fun CallActionToolbar(
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = MaterialTheme.colorScheme.onError
             ),
-            onClick = onEndCallClick,
+            onClick = {
+                if(isGroupCall && !isCaller) {
+                    leaveCall()
+                }
+                else {
+                    onEndCallClick()
+                }
+            },
             // modifier = Modifier.size(24.dp)
         ) {
             Icon(
@@ -637,7 +655,7 @@ fun SmartVideoGrid(
     eglBaseContext: EglBase.Context
 ) {
 
-    val users = tracks.entries.toList()
+    val users = tracks.entries.toList().sortedBy { it.key }
     val count = users.size
     val columns = kotlin.math.ceil(kotlin.math.sqrt(count.toDouble())).toInt()
     val rows = kotlin.math.ceil(count / columns.toDouble()).toInt()

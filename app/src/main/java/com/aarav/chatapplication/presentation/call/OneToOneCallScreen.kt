@@ -374,6 +374,8 @@ fun OneToOneCallScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 54.dp),
                 isMicEnabled = !isMuted,
+                isCaller = isCaller,
+                isGroupCall = false,
                 isSpeakerOn = isSpeakerOn,
                 isVideoEnabled = isVideoEnabled,
                 isVideoCall = isVideoCall,
@@ -385,6 +387,7 @@ fun OneToOneCallScreen(
                 onEndCallClick = {
                     viewModel.endCall(callId)
                 },
+                leaveCall = {},
                 toggleVideo = {
                     viewModel.toggleVideo()
                 },

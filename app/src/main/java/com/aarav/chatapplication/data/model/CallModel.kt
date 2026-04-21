@@ -10,7 +10,7 @@ data class CallModel(
     val receiverId: String = "",
     val groupCall: Boolean = false,
     val videoCall: Boolean = false,
-    val participants: List<String> = emptyList(),
+    val participants: Map<String, Boolean> = emptyMap(),
     val offers: Map<String, OfferModel> = emptyMap(),
     val answers: Map<String, String> = emptyMap(),
     val ended: Boolean = false,

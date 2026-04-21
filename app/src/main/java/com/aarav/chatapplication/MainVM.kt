@@ -34,12 +34,16 @@ class MainVM
             signalingClient.listenForIncomingCalls(userId)
                 .collect { call ->
 
+
                     if (call.ended) {
                         _incomingCall.value = null
                         return@collect
                     }
 
-                    if (call.participants.contains(userId)) {
+
+                    val isMyActiveCall = call.callId == callStateManager.activeCallId
+
+                    if (call.participants.contains(userId) && !isMyActiveCall) {
 
                         val isBusy =
                             callStateManager.callState.value != "IDLE" &&
@@ -48,7 +52,10 @@ class MainVM
                         if (isBusy) {
                             signalingClient.setBusy(call.callId)
                         } else {
-                            _incomingCall.value = call
+                            if (_incomingCall.value?.callId != call.callId) {
+                                Log.d("CALL", "New incoming call detected: ${call.callId}")
+                                _incomingCall.value = call
+                            }
                         }
 
                     } else {
@@ -79,6 +86,10 @@ class MainVM
 //                }
                 }
         }
+    }
+
+    fun clearIncomingCall() {
+        _incomingCall.value = null
     }
 
 }

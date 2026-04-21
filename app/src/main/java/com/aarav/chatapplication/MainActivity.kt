@@ -165,6 +165,7 @@ class MainActivity : ComponentActivity() {
                     if (callState == "IDLE") {
                         showCallBanner = false
                         callInfo = null
+                        mainViewModel.clearIncomingCall()
                     }
 
 
