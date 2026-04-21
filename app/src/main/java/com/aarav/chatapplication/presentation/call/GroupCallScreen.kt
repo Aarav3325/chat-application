@@ -111,7 +111,7 @@ fun GroupCallScreen(
     val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
 
     var showSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
 
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
