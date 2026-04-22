@@ -109,7 +109,19 @@ fun OneToOneCallScreen(
     val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
     val mediaStates by viewModel.mediaStates.collectAsState()
 
-    val remoteUserId = tracks.keys.firstOrNull { it != "LOCAL" } ?: mediaStates.keys.firstOrNull { it != myUserId }
+    val activeParticipants by viewModel.activeParticipants.collectAsState()
+    val userNames by viewModel.usersMapping.collectAsState()
+
+    val remoteUserId = activeParticipants.firstOrNull { it != myUserId }
+        ?: tracks.keys.firstOrNull { it != "LOCAL" } 
+        ?: mediaStates.keys.firstOrNull { it != myUserId }
+
+    val displayRemoteName = if (remoteUserId != null) {
+        userNames[remoteUserId] ?: "Unknown"
+    } else {
+        if (isCaller) "Connecting..." else callerName
+    }
+
     val isRemoteVideoEnabled = remoteUserId?.let { mediaStates[it]?.videoEnabled } ?: true
     val isRemoteMuted = remoteUserId?.let { mediaStates[it]?.muted } ?: false
 
@@ -308,46 +320,58 @@ fun OneToOneCallScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                                .background(Color(0xFF2C2C2C)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    painter = painterResource(R.drawable.camera_off),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                Spacer(Modifier.height(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        androidx.compose.foundation.shape.CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text(
-                                    callerName,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 18.sp
+                                    text = displayRemoteName.take(1).uppercase(),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 32.sp,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                 )
                             }
                         }
                     }
 
-                    if (isRemoteMuted) {
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(bottom = 140.dp, start = 16.dp)
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(bottom = 140.dp, start = 16.dp)
+                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = displayRemoteName,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                        )
+                        if (isRemoteMuted) {
+                            Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 painter = painterResource(R.drawable.microphone_off),
                                 contentDescription = "Muted",
                                 tint = Color.White,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(14.dp)
                             )
+                        }
+                        if (!isRemoteVideoEnabled || !isRemoteReady) {
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Muted",
-                                color = Color.White,
-                                fontSize = 14.sp
+                            Icon(
+                                painter = painterResource(R.drawable.camera_off),
+                                contentDescription = "Camera Off",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
@@ -360,6 +384,7 @@ fun OneToOneCallScreen(
                             .padding(top = 78.dp, end = 16.dp)
                             .size(120.dp, 160.dp)
                             .align(Alignment.TopEnd)
+                            .clip(RoundedCornerShape(16.dp))
                     )
                 } else {
                     Box(
@@ -368,21 +393,23 @@ fun OneToOneCallScreen(
                             .size(120.dp, 160.dp)
                             .align(Alignment.TopEnd)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                            .background(Color(0xFF2C2C2C)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                painter = painterResource(R.drawable.camera_off),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    androidx.compose.foundation.shape.CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                "You",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
+                                "Y",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 20.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             )
                         }
                     }
@@ -391,11 +418,49 @@ fun OneToOneCallScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface),
+                        .background(Color(0xFF2C2C2C)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column() {
-                        Text(callerName, color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    androidx.compose.foundation.shape.CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = displayRemoteName.take(1).uppercase(),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 48.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                        }
+                        
+                        Spacer(Modifier.height(16.dp))
+
+                        Text(displayRemoteName, color = Color.White, fontSize = 24.sp)
+                        
+                        if (isRemoteMuted) {
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier
+                                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.microphone_off),
+                                    contentDescription = "Muted",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Muted", color = Color.White, fontSize = 14.sp)
+                            }
+                        }
 
                         if (!callEnded && state == "CONNECTED") {
                             Spacer(Modifier.height(6.dp))
@@ -426,14 +491,14 @@ fun OneToOneCallScreen(
                 ) {
                     Text(
                         text = when (state) {
-                            "CALLING" -> "Calling $callerName..."
-                            "RECEIVING" -> "Incoming call from $callerName..."
-                            "CONNECTING" -> "Connecting to $callerName..."
-                            "CONNECTED" -> callerName
+                            "CALLING" -> "Calling $displayRemoteName..."
+                            "RECEIVING" -> "Incoming call from $displayRemoteName..."
+                            "CONNECTING" -> "Connecting to $displayRemoteName..."
+                            "CONNECTED" -> displayRemoteName
                             "DISCONNECTED" -> "Disconnected"
                             "FAILED" -> "Failed"
                             "CLOSED", "ENDED" -> "Call Ended"
-                            "BUSY" -> "$callerName is Busy"
+                            "BUSY" -> "$displayRemoteName is Busy"
                             "REJECTED" -> "Call Declined"
                             "MISSED" -> "Missed Call"
                             "IDLE" -> if (callEnded) "Call Ended" else "Initializing..."
