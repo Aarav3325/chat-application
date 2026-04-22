@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.webrtc.PeerConnection
 import org.webrtc.VideoTrack
 import javax.inject.Inject
 import kotlin.Boolean
@@ -56,6 +57,8 @@ class CallViewModel @Inject constructor(
     private val handledOfferKeys = mutableSetOf<String>()
     private val handledAnswerKeys = mutableSetOf<String>()
     private val peerCreated = mutableSetOf<String>()
+
+    val peerStates = webRTCClient.peerStates
 
     private val connectionQueue = ArrayDeque<String>()
 
@@ -136,28 +139,48 @@ class CallViewModel @Inject constructor(
         }
 
         connectionJob = viewModelScope.launch {
-            webRTCClient.connectionState.collect { state ->
-                if (!isEnding) {
-                    Log.d(TAG, "WebRTC connection state: $state")
-                    when (state) {
-                        "CONNECTED" -> {
-                            callStateManager.updateState("CONNECTED")
-                            startTimer()
-                        }
-                        "DISCONNECTED" -> {
-                            if (tracks.value.isNotEmpty()) {
-                                callStateManager.updateState("CONNECTED")
-                            } else {
-                                callStateManager.updateState("DISCONNECTED")
-                            }
-                        }
-//                        "DISCONNECTED" -> {
-//                            callStateManager.updateState("DISCONNECTED")
-//                        }
-                        "FAILED" -> callStateManager.updateState("FAILED")
-                        "NEW" -> {}
-                        else -> callStateManager.updateState("CONNECTING")
+            webRTCClient.peerStates.collect { peerStates ->
+
+                if (isEnding) return@collect
+
+                val states = peerStates.values
+
+                val newState = when {
+
+                    states.any { it == PeerConnection.PeerConnectionState.CONNECTED } -> {
+                        "CONNECTED"
                     }
+
+                    states.any { it == PeerConnection.PeerConnectionState.CONNECTING } -> {
+                        "CONNECTING"
+                    }
+
+                    states.isNotEmpty() && states.all {
+                        it == PeerConnection.PeerConnectionState.DISCONNECTED ||
+                                it == PeerConnection.PeerConnectionState.FAILED
+                    } -> {
+                        "DISCONNECTED"
+                    }
+
+                    states.isEmpty() -> {
+                        "IDLE"
+                    }
+
+                    else -> {
+                        "DISCONNECTED"
+                    }
+                }
+
+                val currentState = callStateManager.callState.value
+
+                if (newState == "CONNECTED" && currentState != "CONNECTED") {
+                    Log.d(TAG, "Call connected → starting timer")
+                    startTimer()
+                }
+
+                if (currentState != newState) {
+                    Log.d(TAG, "GLOBAL STATE → $newState | peers=$peerStates")
+                    callStateManager.updateState(newState)
                 }
             }
         }
@@ -360,7 +383,7 @@ class CallViewModel @Inject constructor(
                         isAnswered = true
                         timeoutJob?.cancel()
                     }
-                    callStateManager.updateState("CONNECTING")
+                    //callStateManager.updateState("CONNECTING")
 
                     ensurePeerConnection(senderId)
 
@@ -392,7 +415,7 @@ class CallViewModel @Inject constructor(
                         isAnswered = true
                         timeoutJob?.cancel()
                     }
-                    callStateManager.updateState("CONNECTING")
+                    //callStateManager.updateState("CONNECTING")
 
                     webRTCClient.onAnswerReceived(senderId, answer)
                 }

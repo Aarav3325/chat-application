@@ -45,6 +45,11 @@ import com.aarav.chatapplication.R
 import com.aarav.chatapplication.utils.formatTime
 import kotlinx.coroutines.delay
 import org.webrtc.SurfaceViewRenderer
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import android.app.Activity
+import androidx.compose.ui.graphics.toArgb
 
 @Composable
 fun OneToOneCallScreen(
@@ -107,6 +112,8 @@ fun OneToOneCallScreen(
     val remoteUserId = tracks.keys.firstOrNull { it != "LOCAL" } ?: mediaStates.keys.firstOrNull { it != myUserId }
     val isRemoteVideoEnabled = remoteUserId?.let { mediaStates[it]?.videoEnabled } ?: true
     val isRemoteMuted = remoteUserId?.let { mediaStates[it]?.muted } ?: false
+
+    val isRemoteReady = tracks.any { it.key != "LOCAL" } && state == "CONNECTED"
 
 
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -279,7 +286,7 @@ fun OneToOneCallScreen(
 
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = Color(0xFF121212),
         modifier = Modifier.fillMaxSize()
     ) {
 
@@ -297,7 +304,7 @@ fun OneToOneCallScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    if (!isRemoteVideoEnabled) {
+                    if (!isRemoteVideoEnabled || !isRemoteReady) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()

@@ -60,7 +60,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -79,6 +78,8 @@ import org.webrtc.EglBase
 import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoTrack
+import androidx.compose.ui.Alignment
+import org.webrtc.PeerConnection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +103,7 @@ fun GroupCallScreen(
 
     val availableUsers by viewModel.availableUsers.collectAsState()
 
-    val selectedUsers = remember { mutableStateListOf<String>() }
+    val peerStates by viewModel.peerStates.collectAsState()
 
     val callEnded by viewModel.callEnded.collectAsState()
     val isMuted by viewModel.isMuted.collectAsState()
@@ -281,7 +282,7 @@ fun GroupCallScreen(
 
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = Color(0xFF121212),
         modifier = Modifier.fillMaxSize()
     ) {
 
@@ -297,6 +298,7 @@ fun GroupCallScreen(
                 key(tracks.size) {
                     SmartVideoGrid(
                         tracks,
+                        peerStates,
                         isVideoEnabled,
                         myUserId,
                         context,
@@ -710,6 +712,7 @@ fun IncomingCallBanner(
 @Composable
 fun SmartVideoGrid(
     tracks: Map<String, VideoTrack>,
+    connectionState: Map<String, PeerConnection.PeerConnectionState>,
     isLocalVideoEnabled: Boolean,
     myUserId: String,
     context: Context,
@@ -734,6 +737,7 @@ fun SmartVideoGrid(
         1 -> {
             VideoItem(
                 users[0].value,
+                connectionState[users[0].key],
                 isLocalVideoEnabled,
                 users[0].key,
                 myUserId,
@@ -750,6 +754,7 @@ fun SmartVideoGrid(
                 users.forEach {
                     VideoItem(
                         it.value,
+                        connectionState[it.key],
                         isLocalVideoEnabled,
                         it.key,
                         myUserId,
@@ -799,6 +804,7 @@ fun SmartVideoGrid(
                         ) {
                             VideoItem(
                                 track = user.value,
+                                connectionState = connectionState[user.key],
                                 isLocalVideoEnabled = isLocalVideoEnabled,
                                 userId = user.key,
                                 myUserId = myUserId,
@@ -821,6 +827,7 @@ fun SmartVideoGrid(
 @Composable
 fun VideoItem(
     track: VideoTrack,
+    connectionState: PeerConnection.PeerConnectionState?,
     isLocalVideoEnabled: Boolean,
     userId: String,
     myUserId: String,
@@ -922,6 +929,33 @@ fun VideoItem(
                     }
                 }
             )
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center),
+            contentAlignment = Alignment.Center
+        ) {
+            when (connectionState) {
+
+                PeerConnection.PeerConnectionState.CONNECTING -> {
+                    Text(
+                        "Connecting...",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.White
+                    )
+                }
+
+                PeerConnection.PeerConnectionState.FAILED -> {
+                    Text(
+                        "Reconnecting...",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.Red
+                    )
+                }
+
+                else -> Unit
+            }
         }
 
         Row(
