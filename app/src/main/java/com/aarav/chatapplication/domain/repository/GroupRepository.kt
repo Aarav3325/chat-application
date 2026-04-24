@@ -29,5 +29,8 @@ interface GroupRepository {
     suspend fun demoteFromAdmin(groupId: String, userId: String): Result<Unit>
 
     suspend fun updateGroupPermissions(groupId: String, permissions: GroupPermissions): Result<Unit>
+
+    suspend fun updateGroupDescription(groupId: String, description: String): Result<Unit>
 }
+
 

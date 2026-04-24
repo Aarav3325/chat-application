@@ -178,5 +178,18 @@ class GroupRepositoryImpl @Inject constructor(
             Result.Error(e.message ?: "Failed to update group permissions")
         }
     }
+
+    override suspend fun updateGroupDescription(
+        groupId: String,
+        description: String
+    ): Result<Unit> {
+        return try {
+            rootRef.child(FirebasePaths.group(groupId)).child("description").setValue(description).await()
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Failed to update group description")
+        }
+    }
 }
+
 

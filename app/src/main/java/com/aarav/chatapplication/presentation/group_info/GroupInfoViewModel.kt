@@ -107,7 +107,14 @@ class GroupInfoViewModel @Inject constructor(
             groupRepository.updateGroupPermissions(groupId, permissions)
         }
     }
+
+    fun updateDescription(groupId: String, description: String) {
+        viewModelScope.launch {
+            groupRepository.updateGroupDescription(groupId, description)
+        }
+    }
 }
+
 
 
 

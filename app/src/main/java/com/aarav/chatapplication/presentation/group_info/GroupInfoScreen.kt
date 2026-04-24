@@ -64,6 +64,7 @@ fun GroupInfoScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showRenameDialog by remember { mutableStateOf(false) }
+    var showEditDescriptionDialog by remember { mutableStateOf(false) }
     var showAddMemberSheet by remember { mutableStateOf(false) }
     var showLeaveConfirmation by remember { mutableStateOf(false) }
 
@@ -103,116 +104,130 @@ fun GroupInfoScreen(
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     ) { padding ->
-        Column(
+        val isCurrentUserAdmin = uiState.group?.admins?.contains(currentUserId) == true
+        val canEditInfo = isCurrentUserAdmin || uiState.group?.permissions?.adminsOnlyEditInfo == false
+        val canAddMembers = isCurrentUserAdmin || uiState.group?.permissions?.adminsOnlyAddMembers == false
+
+        LazyColumn(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            val isCurrentUserAdmin = uiState.group?.admins?.contains(currentUserId) == true
-            val canEditInfo = isCurrentUserAdmin || uiState.group?.permissions?.adminsOnlyEditInfo == false
-            val canAddMembers = isCurrentUserAdmin || uiState.group?.permissions?.adminsOnlyAddMembers == false
-
-            GroupHeader(
-                groupName = uiState.group?.name ?: "",
-                memberCount = uiState.members.filter { it.isActive }.size,
-                onRenameClick = { showRenameDialog = true },
-                isAdmin = canEditInfo
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 16.dp),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            if (uiState.group?.members?.get(currentUserId) == true && canAddMembers) {
-                InfoActionItem(
-                    icon = R.drawable.add_user,
-                    text = "Add Participants",
-                    onClick = { showAddMemberSheet = true }
+            item {
+                GroupHeader(
+                    groupName = uiState.group?.name ?: "",
+                    description = uiState.group?.description ?: "No description",
+                    memberCount = uiState.members.filter { it.isActive }.size,
+                    onRenameClick = { showRenameDialog = true },
+                    onEditDescriptionClick = { showEditDescriptionDialog = true },
+                    isAdmin = canEditInfo
                 )
             }
-            if (uiState.group?.members?.get(currentUserId) == true) {
-                InfoActionItem(
-                    icon = R.drawable.log_out,
-                    text = "Leave Group",
-                    textColor = MaterialTheme.colorScheme.error,
-                    onClick = { showLeaveConfirmation = true }
+
+            item {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
+            }
+
+            if (uiState.group?.members?.get(currentUserId) == true && canAddMembers) {
+                item {
+                    InfoActionItem(
+                        icon = R.drawable.add_user,
+                        text = "Add Participants",
+                        onClick = { showAddMemberSheet = true }
+                    )
+                }
+            }
+            if (uiState.group?.members?.get(currentUserId) == true) {
+                item {
+                    InfoActionItem(
+                        icon = R.drawable.log_out,
+                        text = "Leave Group",
+                        textColor = MaterialTheme.colorScheme.error,
+                        onClick = { showLeaveConfirmation = true }
+                    )
+                }
             }
 
             if (isCurrentUserAdmin) {
-                Spacer(Modifier.height(16.dp))
+                item { Spacer(Modifier.height(16.dp)) }
+                item {
+                    Text(
+                        "Group Settings",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        fontFamily = hankenGrotesk,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                item {
+                    PermissionItem(
+                        text = "Admins only can edit group info",
+                        checked = uiState.group?.permissions?.adminsOnlyEditInfo ?: false,
+                        onCheckedChange = { checked ->
+                            val currentPermissions = uiState.group?.permissions ?: com.aarav.chatapplication.data.model.GroupPermissions()
+                            viewModel.updatePermissions(groupId, currentPermissions.copy(adminsOnlyEditInfo = checked))
+                        }
+                    )
+                }
+                item {
+                    PermissionItem(
+                        text = "Admins only can add members",
+                        checked = uiState.group?.permissions?.adminsOnlyAddMembers ?: false,
+                        onCheckedChange = { checked ->
+                            val currentPermissions = uiState.group?.permissions ?: com.aarav.chatapplication.data.model.GroupPermissions()
+                            viewModel.updatePermissions(groupId, currentPermissions.copy(adminsOnlyAddMembers = checked))
+                        }
+                    )
+                }
+            }
+
+            item { Spacer(Modifier.height(16.dp)) }
+
+            item {
                 Text(
-                    "Group Settings",
+                    "Participants (${uiState.members.size})",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     fontFamily = hankenGrotesk,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                PermissionItem(
-                    text = "Admins only can edit group info",
-                    checked = uiState.group?.permissions?.adminsOnlyEditInfo ?: false,
-                    onCheckedChange = { checked ->
-                        val currentPermissions = uiState.group?.permissions ?: com.aarav.chatapplication.data.model.GroupPermissions()
-                        viewModel.updatePermissions(groupId, currentPermissions.copy(adminsOnlyEditInfo = checked))
-                    }
-                )
-                PermissionItem(
-                    text = "Admins only can add members",
-                    checked = uiState.group?.permissions?.adminsOnlyAddMembers ?: false,
-                    onCheckedChange = { checked ->
-                        val currentPermissions = uiState.group?.permissions ?: com.aarav.chatapplication.data.model.GroupPermissions()
-                        viewModel.updatePermissions(groupId, currentPermissions.copy(adminsOnlyAddMembers = checked))
-                    }
-                )
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                "Participants (${uiState.members.size})",
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                fontFamily = hankenGrotesk,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            LazyColumn(
-                modifier = Modifier.weight(1f)
-            ) {
-                items(uiState.members) { memberInfo ->
-                    val isCurrentUserAdmin = uiState.group?.admins?.contains(currentUserId) == true
-                    val isMemberCreator = uiState.group?.createdBy == memberInfo.user.uid
-                    
-                    MemberItem(
-                        member = memberInfo.user,
-                        isActive = memberInfo.isActive,
-                        isAdmin = memberInfo.isAdmin,
-                        isCreator = isMemberCreator,
-                        showAdminActions = isCurrentUserAdmin && memberInfo.user.uid != currentUserId && !isMemberCreator,
-                        onRemove = {
-                            memberInfo.user.uid?.let {
-                                viewModel.removeMember(groupId, it)
-                            }
-                        },
-                        onPromote = {
-                            memberInfo.user.uid?.let {
-                                viewModel.promoteToAdmin(groupId, it)
-                            }
-                        },
-                        onDemote = {
-                            memberInfo.user.uid?.let {
-                                viewModel.demoteFromAdmin(groupId, it)
-                            }
+            items(uiState.members) { memberInfo ->
+                val isMemberCreator = uiState.group?.createdBy == memberInfo.user.uid
+                
+                MemberItem(
+                    member = memberInfo.user,
+                    isActive = memberInfo.isActive,
+                    isAdmin = memberInfo.isAdmin,
+                    isCreator = isMemberCreator,
+                    showAdminActions = isCurrentUserAdmin && memberInfo.user.uid != currentUserId && !isMemberCreator,
+                    onRemove = {
+                        memberInfo.user.uid?.let {
+                            viewModel.removeMember(groupId, it)
                         }
-                    )
-                }
+                    },
+                    onPromote = {
+                        memberInfo.user.uid?.let {
+                            viewModel.promoteToAdmin(groupId, it)
+                        }
+                    },
+                    onDemote = {
+                        memberInfo.user.uid?.let {
+                            viewModel.demoteFromAdmin(groupId, it)
+                        }
+                    }
+                )
             }
         }
     }
+
 
     if (showRenameDialog) {
         RenameDialog(
@@ -221,6 +236,17 @@ fun GroupInfoScreen(
             onConfirm = { newName ->
                 viewModel.updateGroupName(groupId, newName)
                 showRenameDialog = false
+            }
+        )
+    }
+
+    if (showEditDescriptionDialog) {
+        EditDescriptionDialog(
+            currentDescription = uiState.group?.description ?: "",
+            onDismiss = { showEditDescriptionDialog = false },
+            onConfirm = { newDesc ->
+                viewModel.updateDescription(groupId, newDesc)
+                showEditDescriptionDialog = false
             }
         )
     }
@@ -258,8 +284,10 @@ fun GroupInfoScreen(
 @Composable
 fun GroupHeader(
     groupName: String,
+    description: String,
     memberCount: Int,
     onRenameClick: () -> Unit,
+    onEditDescriptionClick: () -> Unit,
     isAdmin: Boolean
 ) {
     Column(
@@ -306,7 +334,7 @@ fun GroupHeader(
                         }
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.create_chat),
+                        painter = painterResource(R.drawable.edit),
                         contentDescription = "rename",
                         modifier = Modifier
                             .padding(horizontal = 6.dp, vertical = 4.dp)
@@ -321,8 +349,50 @@ fun GroupHeader(
             text = "$memberCount active members",
             fontSize = 14.sp,
             fontFamily = hankenGrotesk,
-            color = MaterialTheme.colorScheme.secondary
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
         )
+
+        Spacer(Modifier.height(12.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "About",
+                        fontSize = 14.sp,
+                        fontFamily = hankenGrotesk,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    if (isAdmin) {
+                        Icon(
+                            painter = painterResource(R.drawable.edit),
+                            contentDescription = "edit description",
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { onEditDescriptionClick() },
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    fontSize = 15.sp,
+                    fontFamily = hankenGrotesk,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -476,6 +546,44 @@ fun MemberItem(
             }
         }
     }
+}
+
+@Composable
+fun EditDescriptionDialog(
+    currentDescription: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var text by remember { mutableStateOf(currentDescription) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Group Description", fontFamily = hankenGrotesk, fontWeight = FontWeight.Bold) },
+        text = {
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 5,
+                shape = RoundedCornerShape(12.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(text) }) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
