@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aarav.chatapplication.R
@@ -298,7 +301,16 @@ fun GroupChatScreen(
                 ) {
                     items(uiState.messages, key = { it.messageId }) { message ->
                         val isMine = message.senderId == myId
-                        GroupChatCard(message, isMine)
+                        val isAdmin = uiState.group?.admins?.contains(myId) == true
+                        
+                        GroupChatCard(
+                            message = message,
+                            isMine = isMine,
+                            isAdmin = isAdmin,
+                            onDelete = {
+                                viewModel.deleteMessage(message.messageId)
+                            }
+                        )
                     }
 
                     item {
@@ -379,16 +391,24 @@ fun GroupChatScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GroupChatCard(
     message: GroupMessage,
-    isMine: Boolean
+    isMine: Boolean,
+    isAdmin: Boolean,
+    onDelete: () -> Unit
 ) {
-    val bg = if (isMine) MaterialTheme.colorScheme.primaryContainer
+    val bg = if (message.isDeleted) MaterialTheme.colorScheme.surfaceVariant
+    else if (isMine) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.secondaryContainer
-    val content = if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
+    
+    val content = if (message.isDeleted) MaterialTheme.colorScheme.outline
+    else if (isMine) MaterialTheme.colorScheme.onPrimaryContainer
     else MaterialTheme.colorScheme.onSecondaryContainer
+    
     val alignment = if (isMine) Alignment.End else Alignment.Start
+    var showMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier.fillMaxWidth()
@@ -403,30 +423,71 @@ fun GroupChatCard(
                 horizontalAlignment = alignment,
                 modifier = Modifier.fillMaxWidth(0.85f)
             ) {
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = bg)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                Box {
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = bg),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .combinedClickable(
+                            onClick = { },
+                            onLongClick = {
+                                if (!message.isDeleted && (isMine || isAdmin)) {
+                                    showMenu = true
+                                }
+                            }
+                        )
                     ) {
-                        if (!isMine) {
-                            Text(
-                                message.senderName,
-                                fontFamily = hankenGrotesk,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.height(4.dp))
-                        }
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            if (!isMine && !message.isDeleted) {
+                                Text(
+                                    message.senderName,
+                                    fontFamily = hankenGrotesk,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.height(4.dp))
+                            }
 
-                        Text(
-                            message.text,
-                            fontFamily = hankenGrotesk,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.W700,
-                            color = content
+                            Text(
+                                text = if (message.isDeleted) "This message was deleted" else message.text,
+                                fontFamily = hankenGrotesk,
+                                fontSize = 14.sp,
+                                fontWeight = if (message.isDeleted) FontWeight.Normal else FontWeight.W700,
+                                color = content,
+                                fontStyle = if (message.isDeleted) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal
+                            )
+                        }
+                    }
+
+                    androidx.compose.material3.DropdownMenu(
+                        offset = DpOffset(x = 0.dp, y = 12.dp),
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { 
+                                Text(
+                                    "Delete for Everyone", 
+                                    fontFamily = hankenGrotesk,
+                                    color = MaterialTheme.colorScheme.error
+                                ) 
+                            },
+                            onClick = {
+                                onDelete()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.remove),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
                         )
                     }
                 }
@@ -440,12 +501,12 @@ fun GroupChatCard(
                     fontFamily = hankenGrotesk,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.W700,
-                    color = content
+                    color = MaterialTheme.colorScheme.outline
                 )
 
                 Spacer(Modifier.width(4.dp))
 
-                if (isMine) {
+                if (isMine && !message.isDeleted) {
                     Surface(color = Color.Transparent) {
                         MessageStatusIcon(message.status)
                     }

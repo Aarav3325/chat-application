@@ -164,7 +164,17 @@ class GroupChatViewModel @Inject constructor(
             )
         }
     }
+
+    fun deleteMessage(messageId: String) {
+        val groupId = currentGroupId ?: return
+        val myId = currentUserId ?: return
+
+        viewModelScope.launch {
+            groupChatRepository.deleteGroupMessage(groupId, messageId, myId)
+        }
+    }
 }
+
 
 data class GroupChatUiState(
     val error: String? = null,
