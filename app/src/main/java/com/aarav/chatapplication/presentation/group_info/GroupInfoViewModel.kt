@@ -26,12 +26,12 @@ class GroupInfoViewModel @Inject constructor(
             groupRepository.observeGroup(groupId)
                 .collect { group ->
                     _uiState.update { it.copy(group = group) }
-                    observeMembersAndAvailableUsers(group.members)
+                    observeMembersAndAvailableUsers(group.members, group.admins)
                 }
         }
     }
 
-    private fun observeMembersAndAvailableUsers(members: Map<String, Boolean>) {
+    private fun observeMembersAndAvailableUsers(members: Map<String, Boolean>, admins: List<String>) {
         viewModelScope.launch {
             userRepository.getAllUsers()
                 .collect { allUsers ->
@@ -39,7 +39,8 @@ class GroupInfoViewModel @Inject constructor(
                         .map { user ->
                             MemberInfo(
                                 user = user,
-                                isActive = members[user.uid] ?: false
+                                isActive = members[user.uid] ?: false,
+                                isAdmin = admins.contains(user.uid)
                             )
                         }
 
@@ -87,7 +88,20 @@ class GroupInfoViewModel @Inject constructor(
     fun clearLeaveState() {
         _uiState.update { it.copy(hasLeftGroup = false) }
     }
+
+    fun promoteToAdmin(groupId: String, userId: String) {
+        viewModelScope.launch {
+            groupRepository.promoteToAdmin(groupId, userId)
+        }
+    }
+
+    fun demoteFromAdmin(groupId: String, userId: String) {
+        viewModelScope.launch {
+            groupRepository.demoteFromAdmin(groupId, userId)
+        }
+    }
 }
+
 
 data class GroupInfoUiState(
     val group: Group? = null,
@@ -99,5 +113,6 @@ data class GroupInfoUiState(
 
 data class MemberInfo(
     val user: User,
-    val isActive: Boolean
-)
+    val isActive: Boolean,
+    val isAdmin: Boolean
+)

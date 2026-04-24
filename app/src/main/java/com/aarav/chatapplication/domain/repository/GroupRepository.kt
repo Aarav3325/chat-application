@@ -22,4 +22,8 @@ interface GroupRepository {
     suspend fun removeMember(groupId: String, userId: String): Result<Unit>
 
     suspend fun leaveGroup(groupId: String, userId: String): Result<Unit>
-}
+
+    suspend fun promoteToAdmin(groupId: String, userId: String): Result<Unit>
+
+    suspend fun demoteFromAdmin(groupId: String, userId: String): Result<Unit>
+}

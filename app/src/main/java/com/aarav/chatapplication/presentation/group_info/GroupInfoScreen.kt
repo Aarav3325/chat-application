@@ -112,7 +112,7 @@ fun GroupInfoScreen(
                 groupName = uiState.group?.name ?: "",
                 memberCount = uiState.members.filter { it.isActive }.size,
                 onRenameClick = { showRenameDialog = true },
-                isAdmin = uiState.group?.createdBy == currentUserId
+                isAdmin = uiState.group?.admins?.contains(currentUserId) == true
             )
 
             HorizontalDivider(
@@ -150,17 +150,28 @@ fun GroupInfoScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 items(uiState.members) { memberInfo ->
+                    val isCurrentUserAdmin = uiState.group?.admins?.contains(currentUserId) == true
+                    val isMemberCreator = uiState.group?.createdBy == memberInfo.user.uid
+                    
                     MemberItem(
                         member = memberInfo.user,
                         isActive = memberInfo.isActive,
-                        isCreator = uiState.group?.createdBy == memberInfo.user.uid,
-                        canRemove = uiState.group?.createdBy == currentUserId && memberInfo.user.uid != currentUserId,
+                        isAdmin = memberInfo.isAdmin,
+                        isCreator = isMemberCreator,
+                        showAdminActions = isCurrentUserAdmin && memberInfo.user.uid != currentUserId && !isMemberCreator,
                         onRemove = {
                             memberInfo.user.uid?.let {
-                                viewModel.removeMember(
-                                    groupId,
-                                    it
-                                )
+                                viewModel.removeMember(groupId, it)
+                            }
+                        },
+                        onPromote = {
+                            memberInfo.user.uid?.let {
+                                viewModel.promoteToAdmin(groupId, it)
+                            }
+                        },
+                        onDemote = {
+                            memberInfo.user.uid?.let {
+                                viewModel.demoteFromAdmin(groupId, it)
                             }
                         }
                     )
@@ -316,10 +327,15 @@ fun InfoActionItem(
 fun MemberItem(
     member: User,
     isActive: Boolean,
+    isAdmin: Boolean,
     isCreator: Boolean,
-    canRemove: Boolean,
-    onRemove: () -> Unit
+    showAdminActions: Boolean,
+    onRemove: () -> Unit,
+    onPromote: () -> Unit,
+    onDemote: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -352,19 +368,19 @@ fun MemberItem(
                     fontWeight = FontWeight.SemiBold,
                     color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
                 )
-                if (isCreator) {
+                if (isAdmin) {
                     Spacer(Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        color = if (isCreator) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            "Admin",
+                            if (isCreator) "Owner" else "Admin",
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                             fontSize = 10.sp,
                             fontFamily = hankenGrotesk,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = if (isCreator) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
@@ -377,14 +393,52 @@ fun MemberItem(
             )
         }
 
-        if (canRemove && isActive) {
-            IconButton(onClick = onRemove) {
-                Icon(
-                    painter = painterResource(R.drawable.remove),
-                    contentDescription = "remove",
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.error
-                )
+        if (showAdminActions && isActive) {
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vertical),
+                        contentDescription = "actions",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                }
+
+                androidx.compose.material3.DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    if (!isAdmin) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("Promote to Admin", fontFamily = hankenGrotesk) },
+                            onClick = {
+                                onPromote()
+                                showMenu = false
+                            }
+                        )
+                    } else {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("Dismiss as Admin", fontFamily = hankenGrotesk) },
+                            onClick = {
+                                onDemote()
+                                showMenu = false
+                            }
+                        )
+                    }
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { 
+                            Text(
+                                "Remove from Group", 
+                                fontFamily = hankenGrotesk,
+                                color = MaterialTheme.colorScheme.error
+                            ) 
+                        },
+                        onClick = {
+                            onRemove()
+                            showMenu = false
+                        }
+                    )
+                }
             }
         }
     }
