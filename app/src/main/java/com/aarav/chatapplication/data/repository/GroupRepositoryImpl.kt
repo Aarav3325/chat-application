@@ -1,6 +1,7 @@
 package com.aarav.chatapplication.data.repository
 
 import com.aarav.chatapplication.data.model.Group
+import com.aarav.chatapplication.data.model.GroupPermissions
 import com.aarav.chatapplication.data.remote.FirebasePaths
 import com.aarav.chatapplication.domain.repository.GroupRepository
 import com.aarav.chatapplication.utils.Result
@@ -165,4 +166,17 @@ class GroupRepositoryImpl @Inject constructor(
             Result.Error(e.message ?: "Failed to demote from admin")
         }
     }
-}
+
+    override suspend fun updateGroupPermissions(
+        groupId: String,
+        permissions: GroupPermissions
+    ): Result<Unit> {
+        return try {
+            rootRef.child(FirebasePaths.group(groupId)).child("permissions").setValue(permissions).await()
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Failed to update group permissions")
+        }
+    }
+}
+

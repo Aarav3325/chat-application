@@ -108,11 +108,15 @@ fun GroupInfoScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
+            val isCurrentUserAdmin = uiState.group?.admins?.contains(currentUserId) == true
+            val canEditInfo = isCurrentUserAdmin || uiState.group?.permissions?.adminsOnlyEditInfo == false
+            val canAddMembers = isCurrentUserAdmin || uiState.group?.permissions?.adminsOnlyAddMembers == false
+
             GroupHeader(
                 groupName = uiState.group?.name ?: "",
                 memberCount = uiState.members.filter { it.isActive }.size,
                 onRenameClick = { showRenameDialog = true },
-                isAdmin = uiState.group?.admins?.contains(currentUserId) == true
+                isAdmin = canEditInfo
             )
 
             HorizontalDivider(
@@ -121,17 +125,47 @@ fun GroupInfoScreen(
                 color = MaterialTheme.colorScheme.outlineVariant
             )
 
-            if (uiState.group?.members?.get(currentUserId) == true) {
+            if (uiState.group?.members?.get(currentUserId) == true && canAddMembers) {
                 InfoActionItem(
                     icon = R.drawable.add_user,
                     text = "Add Participants",
                     onClick = { showAddMemberSheet = true }
                 )
+            }
+            if (uiState.group?.members?.get(currentUserId) == true) {
                 InfoActionItem(
                     icon = R.drawable.log_out,
                     text = "Leave Group",
                     textColor = MaterialTheme.colorScheme.error,
                     onClick = { showLeaveConfirmation = true }
+                )
+            }
+
+            if (isCurrentUserAdmin) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Group Settings",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    fontFamily = hankenGrotesk,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                PermissionItem(
+                    text = "Admins only can edit group info",
+                    checked = uiState.group?.permissions?.adminsOnlyEditInfo ?: false,
+                    onCheckedChange = { checked ->
+                        val currentPermissions = uiState.group?.permissions ?: com.aarav.chatapplication.data.model.GroupPermissions()
+                        viewModel.updatePermissions(groupId, currentPermissions.copy(adminsOnlyEditInfo = checked))
+                    }
+                )
+                PermissionItem(
+                    text = "Admins only can add members",
+                    checked = uiState.group?.permissions?.adminsOnlyAddMembers ?: false,
+                    onCheckedChange = { checked ->
+                        val currentPermissions = uiState.group?.permissions ?: com.aarav.chatapplication.data.model.GroupPermissions()
+                        viewModel.updatePermissions(groupId, currentPermissions.copy(adminsOnlyAddMembers = checked))
+                    }
                 )
             }
 
@@ -478,4 +512,29 @@ fun RenameDialog(
             }
         }
     )
+}
+@Composable
+fun PermissionItem(
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = text,
+            fontFamily = hankenGrotesk,
+            fontSize = 15.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
 }

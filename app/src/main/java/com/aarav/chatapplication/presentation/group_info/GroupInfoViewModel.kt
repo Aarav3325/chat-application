@@ -3,6 +3,7 @@ package com.aarav.chatapplication.presentation.group_info
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aarav.chatapplication.data.model.Group
+import com.aarav.chatapplication.data.model.GroupPermissions
 import com.aarav.chatapplication.domain.model.User
 import com.aarav.chatapplication.domain.repository.GroupRepository
 import com.aarav.chatapplication.domain.repository.UserRepository
@@ -100,7 +101,14 @@ class GroupInfoViewModel @Inject constructor(
             groupRepository.demoteFromAdmin(groupId, userId)
         }
     }
+
+    fun updatePermissions(groupId: String, permissions: GroupPermissions) {
+        viewModelScope.launch {
+            groupRepository.updateGroupPermissions(groupId, permissions)
+        }
+    }
 }
+
 
 
 data class GroupInfoUiState(

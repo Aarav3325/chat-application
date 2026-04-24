@@ -1,6 +1,7 @@
 package com.aarav.chatapplication.domain.repository
 
 import com.aarav.chatapplication.data.model.Group
+import com.aarav.chatapplication.data.model.GroupPermissions
 import com.aarav.chatapplication.utils.Result
 import kotlinx.coroutines.flow.Flow
 
@@ -26,4 +27,7 @@ interface GroupRepository {
     suspend fun promoteToAdmin(groupId: String, userId: String): Result<Unit>
 
     suspend fun demoteFromAdmin(groupId: String, userId: String): Result<Unit>
-}
+
+    suspend fun updateGroupPermissions(groupId: String, permissions: GroupPermissions): Result<Unit>
+}
+
