@@ -180,10 +180,10 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(currentUserId) {
-                    currentUserId?.let {
-
-                        mainViewModel.listenForIncomingCalls(it)
-
+                    if (currentUserId != null) {
+                        mainViewModel.listenForIncomingCalls(currentUserId!!)
+                    } else {
+                        mainViewModel.stopNotificationListening()
                     }
                 }
 

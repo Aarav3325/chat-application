@@ -21,12 +21,14 @@ class MainVM
 @Inject constructor(
     val signalingClient: SignalingClient,
     val userRepository: UserRepository,
-    val callStateManager: CallStateManager
+    val callStateManager: CallStateManager,
+    private val notificationManager: MessageNotificationManager
 ) : ViewModel() {
     private val _incomingCall = MutableStateFlow<CallModel?>(null)
     val incomingCall = _incomingCall.asStateFlow()
 
     fun listenForIncomingCalls(userId: String) {
+        notificationManager.startListening(userId)
         viewModelScope.launch {
             signalingClient.listenForIncomingCalls(userId)
                 .collect { call ->
@@ -64,4 +66,7 @@ class MainVM
         _incomingCall.value = null
     }
 
+    fun stopNotificationListening() {
+        notificationManager.stopListening()
+    }
 }
