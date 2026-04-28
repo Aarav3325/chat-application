@@ -35,6 +35,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +51,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,7 +89,17 @@ fun GroupChatScreen(
     var isFocused by remember { mutableStateOf(false) }
     val isKeyboardOpen = isKeyboardOpen()
 
+    val showScrollToBottom by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex < uiState.messages.size - 5
+        }
+    }
+
     val scope = rememberCoroutineScope()
+
+    val groupedMessages = remember(uiState.messages) {
+        uiState.messages.groupBy { buildRelativeTime(it.timestamp) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.setSenderName(senderName)
@@ -311,21 +327,45 @@ fun GroupChatScreen(
                         flingBehavior = ScrollableDefaults.flingBehavior(),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.messages, key = { it.messageId }) { message ->
-                            val isMine = message.senderId == myId
-                            val isAdmin = uiState.group?.admins?.contains(myId) == true
-                            
-                            GroupChatCard(
-                                message = message,
-                                isMine = isMine,
-                                isAdmin = isAdmin,
-                                onDelete = {
-                                    viewModel.deleteMessage(message.messageId)
-                                },
-                                onPin = {
-                                    viewModel.pinMessage(message.messageId)
+                        groupedMessages.forEach { (date, messages) ->
+                            stickyHeader {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = date,
+                                            fontFamily = hankenGrotesk,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp)
+                                        )
+                                    }
                                 }
-                            )
+                            }
+
+                            items(messages, key = { it.messageId }) { message ->
+                                val isMine = message.senderId == myId
+                                val isAdmin = uiState.group?.admins?.contains(myId) == true
+                                
+                                GroupChatCard(
+                                    message = message,
+                                    isMine = isMine,
+                                    isAdmin = isAdmin,
+                                    onDelete = {
+                                        viewModel.deleteMessage(message.messageId)
+                                    },
+                                    onPin = {
+                                        viewModel.pinMessage(message.messageId)
+                                    }
+                                )
+                            }
                         }
 
                         item {
@@ -348,22 +388,38 @@ fun GroupChatScreen(
                         }
                     }
 
-                    if (uiState.messages.isNotEmpty()) {
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showScrollToBottom,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                    ) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 16.dp)
+                            onClick = {
+                                scope.launch {
+                                    if (uiState.messages.isNotEmpty()) {
+                                        listState.animateScrollToItem(uiState.messages.lastIndex)
+                                    }
+                                }
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            tonalElevation = 4.dp,
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Text(
-                                buildRelativeTime(uiState.messages.last().timestamp),
-                                fontFamily = hankenGrotesk,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Icon(
+                                    painter = painterResource(R.drawable.down),
+                                    contentDescription = "Scroll to bottom",
+                                    modifier = Modifier
+                                        .size(24.dp),
+                                        //.rotate(270f),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         }
                     }
                 }
@@ -449,7 +505,7 @@ fun GroupChatCard(
                             .combinedClickable(
                             onClick = { },
                             onLongClick = {
-                                if (!message.isDeleted && (isMine || isAdmin)) {
+                                if (!message.isDeleted) {
                                     showMenu = true
                                 }
                             }
@@ -485,6 +541,28 @@ fun GroupChatCard(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        val clipboardManager = LocalClipboardManager.current
+                        
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { 
+                                Text(
+                                    "Copy Text", 
+                                    fontFamily = hankenGrotesk
+                                ) 
+                            },
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(message.text))
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.copy),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        )
+
                         if (isAdmin && !message.isDeleted) {
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { 
@@ -507,27 +585,29 @@ fun GroupChatCard(
                             )
                         }
 
-                        androidx.compose.material3.DropdownMenuItem(
-                            text = { 
-                                Text(
-                                    "Delete for Everyone", 
-                                    fontFamily = hankenGrotesk,
-                                    color = MaterialTheme.colorScheme.error
-                                ) 
-                            },
-                            onClick = {
-                                onDelete()
-                                showMenu = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    painterResource(R.drawable.remove),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        )
+                        if (isMine || isAdmin) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { 
+                                    Text(
+                                        "Delete for Everyone", 
+                                        fontFamily = hankenGrotesk,
+                                        color = MaterialTheme.colorScheme.error
+                                    ) 
+                                },
+                                onClick = {
+                                    onDelete()
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        painterResource(R.drawable.remove),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }

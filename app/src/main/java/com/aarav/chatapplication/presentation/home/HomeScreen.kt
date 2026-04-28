@@ -321,6 +321,16 @@ fun DirectChatItem(
                 }
             }
 
+            if (entry.online) {
+                Surface(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .align(Alignment.BottomEnd),
+                    shape = CircleShape,
+                    color = Color(0xFF00FF85),
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface)
+                ) {}
+            }
         }
 
         Spacer(Modifier.width(16.dp))

@@ -41,6 +41,10 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,12 +53,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import com.aarav.chatapplication.R
 import com.aarav.chatapplication.data.model.CallModel
 import com.aarav.chatapplication.data.model.Message
@@ -90,6 +97,12 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var isFocused by remember { mutableStateOf(false) }
     val isKeyboardOpen = isKeyboardOpen()
+    
+    val showScrollToBottom by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex < uiState.messages.size - 5
+        }
+    }
 
     LaunchedEffect(Unit) {
         chatViewModel.observeMessages(chatId, myId)
@@ -105,6 +118,10 @@ fun ChatScreen(
     }
 
     val scope = rememberCoroutineScope()
+
+    val groupedMessages = remember(uiState.messages) {
+        uiState.messages.groupBy { buildRelativeTime(it.timestamp) }
+    }
 
     MyAlertDialog(
         shouldShowDialog = uiState.showErrorDialog,
@@ -153,7 +170,8 @@ fun ChatScreen(
                                 }
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.arrow_back),
+                                painter = painterResource(
+                                    R.drawable.arrow_back),
                                 contentDescription = "back",
                                 modifier = Modifier
                                     .padding(8.dp)
@@ -312,15 +330,39 @@ fun ChatScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.messages) { message ->
-                            val isMine = message.senderId == myId
-                            ChatCard(
-                                message = message,
-                                isMine = isMine,
-                                onDelete = {
-                                    chatViewModel.deleteMessage(message.messageId)
+                        groupedMessages.forEach { (date, messages) ->
+                            stickyHeader {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = date,
+                                            fontFamily = hankenGrotesk,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp)
+                                        )
+                                    }
                                 }
-                            )
+                            }
+
+                            items(messages, key = { it.messageId }) { message ->
+                                val isMine = message.senderId == myId
+                                ChatCard(
+                                    message = message,
+                                    isMine = isMine,
+                                    onDelete = {
+                                        chatViewModel.deleteMessage(message.messageId)
+                                    }
+                                )
+                            }
                         }
 
                         item {
@@ -343,22 +385,38 @@ fun ChatScreen(
                         }
                     }
 
-                    if (uiState.messages.isNotEmpty()) {
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showScrollToBottom,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                    ) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 16.dp)
+                            onClick = {
+                                scope.launch {
+                                    if (uiState.messages.isNotEmpty()) {
+                                        listState.animateScrollToItem(uiState.messages.lastIndex)
+                                    }
+                                }
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            tonalElevation = 4.dp,
+                            modifier = Modifier.size(40.dp)
                         ) {
-                            Text(
-                                buildRelativeTime(uiState.messages.last().timestamp),
-                                fontFamily = hankenGrotesk,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 24.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(R.drawable.down),
+                                    contentDescription = "Scroll to bottom",
+                                    modifier = Modifier
+                                        .size(24.dp),
+                                        //.rotate(270f),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         }
                     }
                 }
@@ -506,7 +564,7 @@ fun ChatCard(
                             .combinedClickable(
                                 onClick = { },
                                 onLongClick = {
-                                    if (!message.isDeleted && isMine) {
+                                    if (!message.isDeleted) {
                                         showMenu = true
                                     }
                                 }
@@ -530,27 +588,51 @@ fun ChatCard(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        val clipboardManager = LocalClipboardManager.current
+                        
                         androidx.compose.material3.DropdownMenuItem(
                             text = { 
                                 Text(
-                                    "Delete for Everyone", 
-                                    fontFamily = hankenGrotesk,
-                                    color = MaterialTheme.colorScheme.error
+                                    "Copy Text", 
+                                    fontFamily = hankenGrotesk
                                 ) 
                             },
                             onClick = {
-                                onDelete()
+                                clipboardManager.setText(AnnotatedString(message.text))
                                 showMenu = false
                             },
                             leadingIcon = {
                                 Icon(
-                                    painterResource(R.drawable.remove),
+                                    painterResource(R.drawable.copy), // Assuming you have a copy icon, or I'll use a generic one if not.
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.error
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         )
+
+                        if (isMine) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { 
+                                    Text(
+                                        "Delete for Everyone", 
+                                        fontFamily = hankenGrotesk,
+                                        color = MaterialTheme.colorScheme.error
+                                    ) 
+                                },
+                                onClick = {
+                                    onDelete()
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        painterResource(R.drawable.remove),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
